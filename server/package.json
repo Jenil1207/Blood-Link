@@ -1,0 +1,20 @@
+{
+  "name": "bloodlink-server",
+  "version": "1.0.0",
+  "description": "Backend API for BloodLink blood donation & hospital SOS coordination platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js"
+  },
+  "keywords": ["mern", "blood-donation", "hospital-management", "express", "mongodb"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.1"
+  }
+}
