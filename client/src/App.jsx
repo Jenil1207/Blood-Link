@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import DashboardPage from './pages/DashboardPage';
+import NearbyCampsPage from './pages/NearbyCampsPage';
 
 // Placeholder view for next phases
 function ComingSoonPage({ title, phaseNumber }) {
@@ -47,8 +49,8 @@ function MainRoutes() {
         <Route path="/admin" element={<AdminPage />} />
 
         {/* Donor routes */}
-        <Route path="/dashboard" element={<ComingSoonPage title="Donor Dashboard" phaseNumber="Next Phase" />} />
-        <Route path="/camps" element={<ComingSoonPage title="Nearby Camps & Drives Map" phaseNumber="Next Phase" />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/camps" element={<NearbyCampsPage />} />
         <Route path="/rewards" element={<ComingSoonPage title="Rewards Store Marketplace" phaseNumber="Next Phase" />} />
         <Route path="/profile" element={<ComingSoonPage title="Donor Health Profile" phaseNumber="Next Phase" />} />
         <Route path="/records" element={<ComingSoonPage title="Patient Donation History Records" phaseNumber="Next Phase" />} />
