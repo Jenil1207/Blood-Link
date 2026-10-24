@@ -31,8 +31,5 @@ A modern MERN stack web application designed to connect voluntary blood donors, 
 BloodLink/
 ├── client/              # React frontend application
 ├── server/              # Express & MongoDB backend API
-├── PROJECT_PLAN.md      # Detailed step-by-step roadmap & specifications
 └── README.md            # Project overview & documentation
 ```
-
-See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for the complete phase-by-phase implementation plan.
