@@ -22,12 +22,11 @@ export default function DashboardPage() {
   const [acceptedId, setAcceptedId] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Fetch live donor details and nearby SOS alerts
+  // fetch donor info and sos alerts
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch donor profile/eligibility
         const donorId = user?.donorId || 'BL-2024-78542';
         const donorRes = await fetch(`http://localhost:5000/api/donors/${donorId}`);
         if (donorRes.ok) {
@@ -36,18 +35,16 @@ export default function DashboardPage() {
           if (setUser) setUser((prev) => ({ ...prev, ...dData }));
         }
 
-        // Fetch nearby SOS alerts
         const sosRes = await fetch('http://localhost:5000/api/sos/nearby');
         if (sosRes.ok) {
           const alerts = await sosRes.json();
-          // Filter to active/in-transit alerts
           const activeOnly = alerts.filter(a => a.status !== 'Resolved');
           setSosAlerts(activeOnly);
         } else {
-          throw new Error('SOS fetch error');
+          throw new Error('error');
         }
       } catch (err) {
-        // High fidelity fallback matching donor-dashboard.pdf
+        // dummy data if server is offline
         setSosAlerts([
           {
             _id: 'sos-1',
@@ -74,20 +71,19 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  // Accept SOS Alert
+  // accept sos button handler
   const handleAcceptSOS = async (alertId, hospitalName) => {
     try {
       await fetch(`http://localhost:5000/api/sos/${alertId}/accept`, { method: 'PUT' });
     } catch (e) {
-      // ignore network errors for mock mode
+      // offline
     }
 
     setAcceptedId(alertId);
-    setToastMessage(`🚑 You have accepted the emergency call for ${hospitalName}! The hospital intake desk has been notified.`);
+    setToastMessage(`You accepted the request for ${hospitalName}! Hospital has been notified.`);
     setTimeout(() => setToastMessage(''), 5000);
   };
 
-  // Format last donation date
   const formattedLastDate = donorData?.lastDonationDate
     ? new Date(donorData.lastDonationDate).toLocaleDateString('en-US', {
         month: 'long',
@@ -98,7 +94,6 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container" style={{ maxWidth: '1240px' }}>
-      {/* Toast Notification */}
       {toastMessage && (
         <div
           style={{
@@ -121,7 +116,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Hero Welcome Card matching donor-dashboard.pdf */}
+      {/* Top Banner */}
       <div
         style={{
           background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)',
@@ -137,7 +132,6 @@ export default function DashboardPage() {
           overflow: 'hidden'
         }}
       >
-        {/* Subtle red background glow */}
         <div
           style={{
             position: 'absolute',

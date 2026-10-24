@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import NearbyCampsPage from './pages/NearbyCampsPage';
+import RewardsStorePage from './pages/RewardsStorePage';
+import DonorProfilePage from './pages/DonorProfilePage';
+import PatientRecordsPage from './pages/PatientRecordsPage';
 
 // Placeholder view for next phases
 function ComingSoonPage({ title, phaseNumber }) {
@@ -51,9 +54,9 @@ function MainRoutes() {
         {/* Donor routes */}
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/camps" element={<NearbyCampsPage />} />
-        <Route path="/rewards" element={<ComingSoonPage title="Rewards Store Marketplace" phaseNumber="Next Phase" />} />
-        <Route path="/profile" element={<ComingSoonPage title="Donor Health Profile" phaseNumber="Next Phase" />} />
-        <Route path="/records" element={<ComingSoonPage title="Patient Donation History Records" phaseNumber="Next Phase" />} />
+        <Route path="/rewards" element={<RewardsStorePage />} />
+        <Route path="/profile" element={<DonorProfilePage />} />
+        <Route path="/records" element={<PatientRecordsPage />} />
 
         {/* Hospital / NGO routes */}
         <Route path="/hospital/sos" element={<ComingSoonPage title="Hospital SOS Management & Depot Stock" phaseNumber="Next Phase" />} />

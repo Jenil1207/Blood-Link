@@ -4,7 +4,7 @@ import { MapPin, Calendar, Clock, Filter, CheckCircle2, X, PlusCircle, Building2
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
-// Custom Leaflet Icons using SVG DivIcon for crisp styling without asset loading issues
+// custom markers for the map
 const createCustomIcon = (type, label) => {
   let bgColor = '#e63946';
   let innerIcon = '🩸';
@@ -58,27 +58,24 @@ const createCustomIcon = (type, label) => {
 export default function NearbyCampsPage() {
   const { user } = useAuth();
 
-  // Filters
   const [distanceFilter, setDistanceFilter] = useState('5');
   const [timeFilter, setTimeFilter] = useState('weekend');
   const [bloodFilter, setBloodFilter] = useState('O+ Needed');
 
-  // Camps state
   const [camps, setCamps] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Registration Modal state
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState('09:30 AM - 10:30 AM');
   const [registeredCampIds, setRegisteredCampIds] = useState([]);
   const [registrationSuccessMsg, setRegistrationSuccessMsg] = useState('');
 
-  // Fetch camps from server
+  // fetch camps based on filters
   useEffect(() => {
     async function fetchCamps() {
       setLoading(true);
       try {
-        const bloodTypeQuery = bloodFilter.split(' ')[0]; // 'O+', 'All', etc.
+        const bloodTypeQuery = bloodFilter.split(' ')[0];
         const res = await fetch(
           `http://localhost:5000/api/camps?lat=19.0760&lng=72.8777&radiusKm=${distanceFilter}&bloodType=${bloodTypeQuery}`
         );
@@ -86,10 +83,10 @@ export default function NearbyCampsPage() {
           const data = await res.json();
           setCamps(data);
         } else {
-          throw new Error('API fetch failed');
+          throw new Error('error');
         }
       } catch (e) {
-        // High fidelity mock data matching nearby-camps.pdf
+        // dummy camps data
         setCamps([
           {
             _id: 'camp-1',
@@ -120,7 +117,7 @@ export default function NearbyCampsPage() {
     fetchCamps();
   }, [distanceFilter, bloodFilter]);
 
-  // Handle Camp Slot Booking
+  // slot booking handler
   const handleRegisterSlot = async (e) => {
     e.preventDefault();
     if (!selectedCamp) return;
@@ -136,18 +133,17 @@ export default function NearbyCampsPage() {
         })
       });
     } catch (err) {
-      // ignore network errors for offline mock
+      // offline
     }
 
     setRegisteredCampIds((prev) => [...prev, selectedCamp._id]);
-    setRegistrationSuccessMsg(`🎉 Successfully booked slot "${selectedSlot}" at ${selectedCamp.title}!`);
+    setRegistrationSuccessMsg(`Successfully booked slot "${selectedSlot}" at ${selectedCamp.title}!`);
     setSelectedCamp(null);
     setTimeout(() => setRegistrationSuccessMsg(''), 5000);
   };
 
   return (
     <div className="page-container" style={{ maxWidth: '1280px' }}>
-      {/* Header and Filter Row matching nearby-camps.pdf */}
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
           Nearby Camps & Drives
