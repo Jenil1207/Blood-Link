@@ -10,35 +10,8 @@ import RewardsStorePage from './pages/RewardsStorePage';
 import DonorProfilePage from './pages/DonorProfilePage';
 import PatientRecordsPage from './pages/PatientRecordsPage';
 import HospitalSosPage from './pages/HospitalSosPage';
-
-// Placeholder view for next phases
-function ComingSoonPage({ title, phaseNumber }) {
-  return (
-    <div className="page-container" style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-      <div className="card" style={{ maxWidth: '600px', margin: '0 auto', padding: '3rem 2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.75rem' }}>
-          {title}
-        </h2>
-        <p style={{ color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-          This page is scheduled for the next development phase ({phaseNumber}) of the mini-project.
-        </p>
-        <div
-          style={{
-            display: 'inline-block',
-            backgroundColor: '#fee2e2',
-            color: '#dc2626',
-            fontWeight: 700,
-            padding: '6px 14px',
-            borderRadius: '9999px',
-            fontSize: '0.85rem'
-          }}
-        >
-          Phase Ready to Build Next
-        </div>
-      </div>
-    </div>
-  );
-}
+import HospitalDonorSearchPage from './pages/HospitalDonorSearchPage';
+import HospitalUpdateDonorRecordsPage from './pages/HospitalUpdateDonorRecordsPage';
 
 function MainRoutes() {
   const { role } = useAuth();
@@ -61,8 +34,8 @@ function MainRoutes() {
 
         {/* Hospital / NGO routes */}
         <Route path="/hospital/sos" element={<HospitalSosPage />} />
-        <Route path="/hospital/donors" element={<ComingSoonPage title="Hospital Donor Search" phaseNumber="Next Phase" />} />
-        <Route path="/hospital/update-record" element={<ComingSoonPage title="Hospital Update Donor Records" phaseNumber="Next Phase" />} />
+        <Route path="/hospital/donors" element={<HospitalDonorSearchPage />} />
+        <Route path="/hospital/update-record" element={<HospitalUpdateDonorRecordsPage />} />
 
         {/* Default route */}
         <Route path="/" element={<Navigate to="/login" replace />} />
