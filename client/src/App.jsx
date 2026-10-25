@@ -9,6 +9,7 @@ import NearbyCampsPage from './pages/NearbyCampsPage';
 import RewardsStorePage from './pages/RewardsStorePage';
 import DonorProfilePage from './pages/DonorProfilePage';
 import PatientRecordsPage from './pages/PatientRecordsPage';
+import HospitalSosPage from './pages/HospitalSosPage';
 
 // Placeholder view for next phases
 function ComingSoonPage({ title, phaseNumber }) {
@@ -59,7 +60,7 @@ function MainRoutes() {
         <Route path="/records" element={<PatientRecordsPage />} />
 
         {/* Hospital / NGO routes */}
-        <Route path="/hospital/sos" element={<ComingSoonPage title="Hospital SOS Management & Depot Stock" phaseNumber="Next Phase" />} />
+        <Route path="/hospital/sos" element={<HospitalSosPage />} />
         <Route path="/hospital/donors" element={<ComingSoonPage title="Hospital Donor Search" phaseNumber="Next Phase" />} />
         <Route path="/hospital/update-record" element={<ComingSoonPage title="Hospital Update Donor Records" phaseNumber="Next Phase" />} />
 
