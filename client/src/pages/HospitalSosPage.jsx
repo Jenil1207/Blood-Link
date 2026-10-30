@@ -1,179 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, CheckCircle, Send, ArrowRightLeft, ShieldAlert } from 'lucide-react';
-
+import { CheckCircle, ShieldAlert } from 'lucide-react';
 export default function HospitalSosPage() {
   const { user } = useAuth();
-
-  // default hospital inventory matching pdf
-  const [inventory, setInventory] = useState({
-    'O+': 24,
-    'O-': 3,
-    'A+': 14,
-    'A-': 6,
-    'B+': 18,
-    'B-': 4,
-    'AB+': 9,
-    'AB-': 1
-  });
-
-  // form states for creating sos
+  const [inventory, setInventory] = useState({});
   const [targetBloodType, setTargetBloodType] = useState('O-');
   const [requiredQuantity, setRequiredQuantity] = useState(5);
   const [urgencyLevel, setUrgencyLevel] = useState('Critical (24h)');
-
-  // alerts & transfer logs
-  const [recentSos, setRecentSos] = useState([
-    {
-      id: 'sos-in-transit',
-      type: 'O- Emergency',
-      time: 'Jan 28, 14:00',
-      units: 5,
-      status: 'In Transit',
-      hospitalName: 'XYZ Hospital'
-    },
-    {
-      id: 'sos-resolved',
-      type: 'AB- Call',
-      time: 'Jan 14, 08:30',
-      units: 2,
-      status: 'Resolved',
-      resolvedBy: 'Hospital X',
-      hospitalName: 'XYZ Hospital'
-    },
-    {
-      id: 'sos-active-other',
-      type: 'O+ Emergency Demand',
-      time: 'Today, 11:15',
-      units: 4,
-      status: 'Active',
-      hospitalName: 'Saint Jude Trauma Center'
-    }
-  ]);
-
-  // nearby hospitals with surplus blood
-  const [stockMatches, setStockMatches] = useState([
-    {
-      id: 'm-1',
-      name: 'City General Hospital',
-      distance: '3.2 km away',
-      surplus: '4 Units O- surplus',
-      requested: false
-    },
-    {
-      id: 'm-2',
-      name: 'Mercy Trauma Center',
-      distance: '7.5 km away',
-      surplus: '2 Units O- surplus',
-      requested: false
-    }
-  ]);
-
-  // donation history logs
-  const [donationLogs, setDonationLogs] = useState([
-    {
-      id: 'log-1',
-      date: 'Oct 14, 2025',
-      facility: 'XYZ Hospital',
-      type: 'O+',
-      qty: '450ml',
-      resolvedBy: 'NA',
-      status: 'Urgent'
-    },
-    {
-      id: 'log-2',
-      date: 'Jul 08, 2025',
-      facility: 'Hospital City',
-      type: 'Plasma',
-      qty: '450ml',
-      resolvedBy: 'X Hospital',
-      status: 'Resolved'
-    }
-  ]);
-
+  const [recentSos, setRecentSos] = useState([]);
+  const [stockMatches, setStockMatches] = useState([]);
+  const donationLogs = recentSos.filter(a => a.status === 'Resolved').map(a => ({ id: a.id, date: a.time, facility: a.hospitalName, type: a.type, qty: a.units + ' units', resolvedBy: a.resolvedBy, status: a.status }));
   const [notification, setNotification] = useState('');
-
-  // fetch inventory from server if available
+  const refresh = useCallback(async () => {
+    const [profile, mine, nearby, matches] = await Promise.all([
+      api('/hospitals/' + user._id), api('/sos/mine'), api('/sos/nearby'),
+      api('/sos/stock-matches/' + user._id + '?bloodType=' + encodeURIComponent(targetBloodType))
+    ]);
+    setInventory(profile.inventory);
+    setRecentSos([...new Map([...mine, ...nearby].map(a => [a._id, a])).values()].map(a => ({
+      ...a, id: a._id, type: a.targetBloodType + ' Emergency', time: new Date(a.createdAt).toLocaleString(), units: a.requiredQuantity, own: a.hospitalId === user._id
+    })));
+    setStockMatches(matches.map(m => ({ ...m, id: m.hospitalId, distance: m.distanceKm + ' km away', surplus: (m.inventory[targetBloodType] || 0) + ' units ' + targetBloodType })));
+  }, [user._id, targetBloodType]);
+  useEffect(() => { refresh().catch(err => setNotification(err.message)); }, [refresh]);
   useEffect(() => {
-    async function loadHospitalData() {
-      if (user?._id && user?._id !== 'mock-hospital-id') {
-        try {
-          const res = await fetch(`http://localhost:5000/api/hospitals/${user._id}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.inventory) setInventory(data.inventory);
-          }
-        } catch (e) {
-          // use default state
-        }
-      }
-    }
-    loadHospitalData();
-  }, [user]);
-
-  // trigger new sos alert
-  const handlePublishSos = async (e) => {
+    const handler = () => refresh().catch(err => setNotification(err.message));
+    window.addEventListener('bloodlink-notification', handler);
+    return () => window.removeEventListener('bloodlink-notification', handler);
+  }, [refresh]);
+  const handlePublishSos = async e => {
     e.preventDefault();
-
-    const newAlert = {
-      id: 'sos-' + Date.now(),
-      type: `${targetBloodType} Emergency Call`,
-      time: 'Just now',
-      units: parseInt(requiredQuantity),
-      status: 'Active',
-      hospitalName: user?.name || 'XYZ Hospital'
-    };
-
     try {
-      await fetch('http://localhost:5000/api/sos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hospitalId: user?._id || 'mock-hospital-id',
-          hospitalName: user?.name || 'XYZ Hospital',
-          targetBloodType,
-          requiredQuantity,
-          urgencyLevel
-        })
-      });
-    } catch (err) {
-      // offline
-    }
-
-    setRecentSos([newAlert, ...recentSos]);
-    setNotification(`Broadcast triggered for ${requiredQuantity} Bags of ${targetBloodType}! Donors and nearby hospitals alerted.`);
-    setTimeout(() => setNotification(''), 5000);
+      const result = await api('/sos', { method: 'POST', body: { targetBloodType, requiredQuantity: Number(requiredQuantity), urgencyLevel } });
+      await refresh(); setNotification('SOS published. ' + result.notifiedDonors + ' matching donors notified.');
+    } catch (err) { setNotification(err.message); }
   };
-
-  // request transfer from nearby hospital
-  const handleRequestTransfer = (matchId, hospName) => {
-    setStockMatches((prev) =>
-      prev.map((m) => (m.id === matchId ? { ...m, requested: true } : m))
-    );
-    setNotification(`Transfer request dispatched to ${hospName}! Dispatch rider notified.`);
-    setTimeout(() => setNotification(''), 5000);
+  const handleRequestTransfer = async () => {
+    try {
+      const result = await api('/sos', { method: 'POST', body: { targetBloodType, requiredQuantity: Number(requiredQuantity), urgencyLevel } });
+      await refresh(); setNotification('SOS ' + result.alert._id + ' created. Partner hospitals can fulfill it from their SOS dashboard.');
+    } catch (err) { setNotification(err.message); }
   };
-
-  // fulfill another hospital's sos
-  const handleFulfillSos = (alertId, hospName) => {
-    setRecentSos((prev) =>
-      prev.map((item) =>
-        item.id === alertId
-          ? { ...item, status: 'Resolved', resolvedBy: user?.name || 'XYZ Hospital' }
-          : item
-      )
-    );
-    setNotification(`You fulfilled the emergency blood request for ${hospName}!`);
-    setTimeout(() => setNotification(''), 5000);
+  const handleFulfillSos = async alertId => {
+    const own = recentSos.find(a => a.id === alertId)?.own;
+    try { await api('/sos/' + alertId + (own ? '/resolve' : '/fulfill'), { method: 'PUT' }); await refresh(); setNotification(own ? 'SOS resolved' : 'Stock transferred and SOS resolved'); }
+    catch (err) { setNotification(err.message); }
   };
-
-  // helper to get progress bar color based on stock count
-  const getStockStatus = (count) => {
-    if (count <= 3) return { text: 'CRITICAL', color: '#dc2626', bg: '#dc2626' };
-    if (count <= 6) return { text: 'LOW', color: '#ea580c', bg: '#ea580c' };
-    return { text: 'Adequate', color: '#16a34a', bg: '#10b981' };
-  };
-
+  const getStockStatus = count => count <= 3 ? { text: 'CRITICAL', color: '#dc2626', bg: '#dc2626' } : count <= 6 ? { text: 'LOW', color: '#ea580c', bg: '#ea580c' } : { text: 'Adequate', color: '#16a34a', bg: '#10b981' };
   const bloodGroups = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
   return (
@@ -437,13 +311,13 @@ export default function HospitalSosPage() {
                       Resolved ({item.resolvedBy})
                     </span>
                   )}
-                  {item.status === 'Active' && (
+                  {(item.status === 'Active' || item.status === 'In Transit') && (
                     <button
                       onClick={() => handleFulfillSos(item.id, item.hospitalName)}
                       className="btn-primary"
                       style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: '6px' }}
                     >
-                      Fulfill Request
+                      {item.own ? 'Resolve Request' : 'Fulfill Request'}
                     </button>
                   )}
                 </div>

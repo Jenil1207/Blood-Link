@@ -1,0 +1,17 @@
+{
+  "name": "bloodlink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local launcher for the BloodLink MERN college project",
+  "scripts": {
+    "dev": "node scripts/dev-local.js",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev -- --host 127.0.0.1 --port 5173 --strictPort",
+    "check:local": "node scripts/check-local.js",
+    "test": "npm --prefix server test",
+    "build": "npm --prefix client run build"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

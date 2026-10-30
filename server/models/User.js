@@ -1,100 +1,29 @@
 const mongoose = require('mongoose');
-
-// Schema for Normal Donor Users
-const userSchema = new mongoose.Schema(
-  {
-    donorId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      default: () => 'BL-2024-' + Math.floor(10000 + Math.random() * 90000)
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true
-    },
-    password: {
-      type: String,
-      required: true
-    },
-    bloodType: {
-      type: String,
-      required: true,
-      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-    },
-    dob: {
-      type: Date,
-      required: true
-    },
-    address: {
-      type: String,
-      default: ''
-    },
-    healthProblems: {
-      type: String,
-      default: 'None'
-    },
-    // MongoDB GeoJSON Point for geospatial queries (nearby camps, SOS)
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        default: [72.8777, 19.0760] // Default Mumbai coordinates
-      }
-    },
-    coins: {
-      type: Number,
-      default: 450
-    },
-    totalDonations: {
-      type: Number,
-      default: 8
-    },
-    badgesCount: {
-      type: Number,
-      default: 3
-    },
-    lastDonationDate: {
-      type: Date,
-      default: () => new Date(Date.now() - 95 * 24 * 60 * 60 * 1000) // ~3 months ago so eligible by default
-    },
-    hemoglobin: {
-      type: Number,
-      default: 14.2
-    },
-    bloodPressure: {
-      type: String,
-      default: '118/78'
-    },
-    screeningStatus: {
-      type: String,
-      enum: ['Passed', 'Deferred', 'Pending'],
-      default: 'Passed'
-    },
-    verifyingInstitutions: {
-      type: [String],
-      default: ['XYZ Hospital', 'XYZ Blood Bank & Clinics']
-    }
-  },
-  {
-    timestamps: true
-  }
-);
-
-// 2dsphere index for MongoDB geospatial queries
-userSchema.index({ location: '2dsphere' });
-
-module.exports = mongoose.model('User', userSchema);
+const { randomUUID } = require('node:crypto');
+const { bloodTypes, pointSchema, accountPlugin } = require('./shared');
+const medicalSchema = new mongoose.Schema({
+  conditions: { type: [String], default: [] }, medications: { type: [String], default: [] },
+  allergies: { type: [String], default: [] }, surgeries: { type: [String], default: [] },
+  notes: { type: String, default: '' }
+}, { _id: false });
+const schema = new mongoose.Schema({
+  donorId: { type: String, unique: true, default: () => `BL-${new Date().getUTCFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}` },
+  name: { type: String, required: true, trim: true, maxlength: 120 },
+  bloodType: { type: String, required: true, enum: bloodTypes },
+  dob: { type: Date, required: true }, address: { type: String, default: '' }, phone: { type: String, default: '' },
+  location: { type: pointSchema, default: undefined },
+  healthProblems: { type: String, default: '' },
+  medicalHistory: { type: medicalSchema, default: () => ({}) },
+  knownAbnormalities: { type: [String], default: [] },
+  shareMedicalHistory: { type: Boolean, default: false },
+  availableForSOS: { type: Boolean, default: true },
+  coins: { type: Number, min: 0, default: 0 }, totalDonations: { type: Number, min: 0, default: 0 },
+  badgesCount: { type: Number, min: 0, default: 0 },
+  lastDonationDate: { type: Date, default: null }, hemoglobin: { type: Number, default: null },
+  bloodPressure: { type: String, default: '' },
+  screeningStatus: { type: String, enum: ['Passed', 'Deferred', 'Pending'], default: 'Pending' },
+  verifyingInstitutions: { type: [String], default: [] }
+}, { timestamps: true });
+schema.plugin(accountPlugin);
+schema.index({ location: '2dsphere' });
+module.exports = mongoose.model('User', schema);

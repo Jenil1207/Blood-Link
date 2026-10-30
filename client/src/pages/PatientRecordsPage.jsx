@@ -1,94 +1,23 @@
+import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Heart, Gift, Award, Activity } from 'lucide-react';
-
+import { Heart, Gift, Award } from 'lucide-react';
 export default function PatientRecordsPage() {
   const { user } = useAuth();
-
-  // state for records list
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // load records from server
+  const [error, setError] = useState('');
   useEffect(() => {
-    async function loadRecords() {
-      setLoading(true);
-      const donorBLId = user?.donorId || 'BL-2024-78542';
-
-      try {
-        const res = await fetch(`http://localhost:5000/api/records/donor/${donorBLId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            setRecords(data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        // fallback to mock records if server is offline
-      }
-
-      // default records matching the pdf
-      setRecords([
-        {
-          _id: 'rec-1',
-          dateString: 'Oct 14, 2025',
-          facilityName: 'Saint Jude Trauma Center',
-          bloodTypeCollected: 'O+',
-          quantityMl: 450,
-          coinsAwarded: 100,
-          status: 'Verified'
-        },
-        {
-          _id: 'rec-2',
-          dateString: 'Jul 08, 2025',
-          facilityName: 'City General NGO Drive',
-          bloodTypeCollected: 'O+',
-          quantityMl: 450,
-          coinsAwarded: 50,
-          status: 'Verified'
-        },
-        {
-          _id: 'rec-3',
-          dateString: 'Apr 02, 2025',
-          facilityName: 'Metro Blood Bank',
-          bloodTypeCollected: 'Plasma',
-          quantityMl: 350,
-          coinsAwarded: 75,
-          status: 'Verified'
-        },
-        {
-          _id: 'rec-4',
-          dateString: 'Jan 10, 2025',
-          facilityName: 'Saint Jude Trauma Center',
-          bloodTypeCollected: 'O+',
-          quantityMl: 450,
-          coinsAwarded: 100,
-          status: 'Verified'
-        },
-        {
-          _id: 'rec-5',
-          dateString: 'Oct 18, 2024',
-          facilityName: 'Red Cross Mobile Camp',
-          bloodTypeCollected: 'O+',
-          quantityMl: 450,
-          coinsAwarded: 50,
-          status: 'Verified'
-        }
-      ]);
-      setLoading(false);
-    }
-
-    loadRecords();
-  }, [user]);
-
-  const donorId = user?.donorId || 'BL-2024-78542';
-  const totalDonations = user?.totalDonations || 8;
-  const coinBalance = user?.coins !== undefined ? user.coins : 820;
+    api('/records/donor/' + user.donorId).then(setRecords).catch(err => setError(err.message)).finally(() => setLoading(false));
+  }, [user.donorId]);
+  const donorId = user.donorId;
+  const totalDonations = user.totalDonations ?? 0;
+  const coinBalance = user.coins ?? 0;
 
   return (
     <div className="page-container" style={{ maxWidth: '1240px' }}>
+      {loading && <p>Loading...</p>}
+      {error && <p role="alert">{error}</p>}
       {/* Top Banner */}
       <div
         style={{

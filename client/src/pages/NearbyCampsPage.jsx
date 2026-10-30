@@ -1,6 +1,7 @@
+import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, Calendar, Clock, Filter, CheckCircle2, X, PlusCircle, Building2 } from 'lucide-react';
+import { Clock, CheckCircle2, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -56,94 +57,40 @@ const createCustomIcon = (type, label) => {
 };
 
 export default function NearbyCampsPage() {
-  const { user } = useAuth();
-
-  const [distanceFilter, setDistanceFilter] = useState('5');
+  const { user, role } = useAuth();
+  const [distanceFilter, setDistanceFilter] = useState('50');
   const [timeFilter, setTimeFilter] = useState('weekend');
-  const [bloodFilter, setBloodFilter] = useState('O+ Needed');
-
+  const [bloodFilter, setBloodFilter] = useState('All');
   const [camps, setCamps] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [selectedCamp, setSelectedCamp] = useState(null);
-  const [selectedSlot, setSelectedSlot] = useState('09:30 AM - 10:30 AM');
+  const [selectedSlot, setSelectedSlot] = useState('');
   const [registeredCampIds, setRegisteredCampIds] = useState([]);
   const [registrationSuccessMsg, setRegistrationSuccessMsg] = useState('');
-
-  // fetch camps based on filters
+  const [error, setError] = useState('');
   useEffect(() => {
-    async function fetchCamps() {
-      setLoading(true);
-      try {
-        const bloodTypeQuery = bloodFilter.split(' ')[0];
-        const res = await fetch(
-          `http://localhost:5000/api/camps?lat=19.0760&lng=72.8777&radiusKm=${distanceFilter}&bloodType=${bloodTypeQuery}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setCamps(data);
-        } else {
-          throw new Error('error');
-        }
-      } catch (e) {
-        // dummy camps data
-        setCamps([
-          {
-            _id: 'camp-1',
-            title: 'Metro Central Plaza Drive',
-            organizerName: 'Red Cross Chapter 4',
-            timeString: 'Saturday, 09:00 AM',
-            distanceKm: 1.2,
-            demands: ['O+ / A+ Demands'],
-            address: 'Metro Central Mall Concourse, Mumbai',
-            location: { coordinates: [72.8680, 19.0720] }
-          },
-          {
-            _id: 'camp-2',
-            title: 'Community Health Initiative Camp',
-            organizerName: 'LifeSource Foundation',
-            timeString: 'Sunday, 10:00 AM',
-            distanceKm: 3.4,
-            demands: ['All Types Accepted'],
-            address: 'Community Center Grounds, Mumbai',
-            location: { coordinates: [72.8480, 19.0950] }
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCamps();
+    const controller = new AbortController();
+    const query = new URLSearchParams({ radiusKm: distanceFilter, bloodType: bloodFilter.split(' ')[0] });
+    api('/camps?' + query, { signal: controller.signal }).then(data => {
+      setError(''); setCamps(data); setRegisteredCampIds(data.filter(c => c.myRegistration).map(c => c._id));
+    }).catch(err => { if (!controller.signal.aborted) { setCamps([]); setError(err.message); } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [distanceFilter, bloodFilter]);
-
-  // slot booking handler
-  const handleRegisterSlot = async (e) => {
+  const handleRegisterSlot = async e => {
     e.preventDefault();
     if (!selectedCamp) return;
-
     try {
-      await fetch(`http://localhost:5000/api/camps/${selectedCamp._id}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          donorId: user?.donorId || 'BL-2024-78542',
-          name: user?.name || 'John Doe',
-          timeSlot: selectedSlot
-        })
-      });
-    } catch (err) {
-      // offline
-    }
-
-    setRegisteredCampIds((prev) => [...prev, selectedCamp._id]);
-    setRegistrationSuccessMsg(`Successfully booked slot "${selectedSlot}" at ${selectedCamp.title}!`);
-    setSelectedCamp(null);
-    setTimeout(() => setRegistrationSuccessMsg(''), 5000);
+      await api('/camps/' + selectedCamp._id + '/register', { method: 'POST', body: { timeSlot: selectedSlot } });
+      setRegisteredCampIds(prev => [...prev, selectedCamp._id]);
+      setRegistrationSuccessMsg('Booked ' + selectedSlot + ' at ' + selectedCamp.title);
+      setSelectedCamp(null);
+    } catch (err) { setError(err.message); }
   };
 
   return (
     <div className="page-container" style={{ maxWidth: '1280px' }}>
+      {loading && <p>Loading...</p>}
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
           Nearby Camps & Drives
@@ -226,6 +173,7 @@ export default function NearbyCampsPage() {
         </div>
       </div>
 
+      {error && <p role="alert">{error}</p>}
       {/* Success Notification */}
       {registrationSuccessMsg && (
         <div
@@ -299,10 +247,10 @@ export default function NearbyCampsPage() {
                   }}
                 >
                   <Clock size={15} />
-                  <span>{camp.timeString || 'Saturday, 09:00 AM'}</span>
+                  <span>{camp.timeString || new Date(camp.date).toLocaleString()}</span>
                   <span>&bull;</span>
                   <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                    {camp.distanceKm ? `${camp.distanceKm} km away` : '1.2 km away'}
+                    {camp.distanceKm != null ? `${camp.distanceKm} km away` : 'Set your profile location'}
                   </span>
                 </div>
 
@@ -326,7 +274,7 @@ export default function NearbyCampsPage() {
                     </span>
                   ) : (
                     <button
-                      onClick={() => setSelectedCamp(camp)}
+                      disabled={role !== 'donor'} onClick={() => { setSelectedCamp(camp); setSelectedSlot(camp.slots[0]); }}
                       className="btn-primary"
                       style={{
                         padding: '6px 20px',
@@ -357,7 +305,7 @@ export default function NearbyCampsPage() {
         >
           {/* Leaflet Map */}
           <MapContainer
-            center={[19.0760, 72.8777]}
+            center={user.location ? [user.location.coordinates[1], user.location.coordinates[0]] : [19.0760, 72.8777]}
             zoom={13}
             style={{ width: '100%', height: '100%' }}
             scrollWheelZoom={false}
@@ -367,50 +315,7 @@ export default function NearbyCampsPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Marker 1: Metro Central Plaza Drive */}
-            <Marker
-              position={[19.0720, 72.8680]}
-              icon={createCustomIcon('blood-drive', 'Metro Central Drive (1.2km)')}
-            >
-              <Popup>
-                <strong>Metro Central Plaza Drive</strong><br />
-                Red Cross Chapter 4<br />
-                Saturday, 09:00 AM
-              </Popup>
-            </Marker>
-
-            {/* Marker 2: LifeSource Camp */}
-            <Marker
-              position={[19.0950, 72.8480]}
-              icon={createCustomIcon('blood-drive', 'LifeSource Camp (3.4km)')}
-            >
-              <Popup>
-                <strong>Community Health Initiative Camp</strong><br />
-                LifeSource Foundation<br />
-                Sunday, 10:00 AM
-              </Popup>
-            </Marker>
-
-            {/* Additional Community Clinic & Center Markers matching PDF map */}
-            <Marker
-              position={[19.0820, 72.8550]}
-              icon={createCustomIcon('clinic', 'Community Clinic')}
-            >
-              <Popup>
-                <strong>Local Municipal Community Clinic</strong><br />
-                Open Mon-Sat 8 AM - 4 PM
-              </Popup>
-            </Marker>
-
-            <Marker
-              position={[19.0650, 72.8850]}
-              icon={createCustomIcon('center', 'Red Cross Center')}
-            >
-              <Popup>
-                <strong>Red Cross Regional Donation Center</strong><br />
-                Permanent blood collection facility
-              </Popup>
-            </Marker>
+            {camps.map(camp => <Marker key={camp._id} position={[camp.location.coordinates[1], camp.location.coordinates[0]]} icon={createCustomIcon('blood-drive', 'Blood Drive')}><Popup><strong>{camp.title}</strong><br />{camp.organizerName}<br />{new Date(camp.date).toLocaleString()}</Popup></Marker>)}
           </MapContainer>
 
           {/* Map Legend Overlay matching PDF */}
@@ -526,11 +431,7 @@ export default function NearbyCampsPage() {
                   onChange={(e) => setSelectedSlot(e.target.value)}
                   className="form-select"
                 >
-                  <option value="09:00 AM - 10:00 AM">09:00 AM - 10:00 AM</option>
-                  <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
-                  <option value="11:30 AM - 12:30 PM">11:30 AM - 12:30 PM</option>
-                  <option value="02:00 PM - 03:00 PM">02:00 PM - 03:00 PM</option>
-                  <option value="03:30 PM - 04:30 PM">03:30 PM - 04:30 PM</option>
+                  {selectedCamp.slots.map(slot => <option key={slot} value={slot}>{slot}</option>)}
                 </select>
               </div>
 

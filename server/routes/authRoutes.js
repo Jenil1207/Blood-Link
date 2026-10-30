@@ -1,146 +1,45 @@
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
+const { rateLimit } = require('express-rate-limit');
 const User = require('../models/User');
 const HospitalNGO = require('../models/HospitalNGO');
-
-// Register Normal Donor
-router.post('/register-donor', async (req, res) => {
-  try {
-    const { name, email, password, bloodType, dob, address, healthProblems, latitude, longitude } = req.body;
-
-    if (!name || !email || !password || !bloodType || !dob) {
-      return res.status(400).json({ error: 'Please provide all required fields' });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'User with this email already exists' });
-    }
-
-    // Default coordinates if not provided (Mumbai coordinates)
-    const coords = [
-      longitude ? parseFloat(longitude) : 72.8777,
-      latitude ? parseFloat(latitude) : 19.0760
-    ];
-
-    const donor = new User({
-      name,
-      email,
-      password, // In a beginner lab project, straightforward string or hash
-      bloodType,
-      dob,
-      address: address || '',
-      healthProblems: healthProblems || 'None',
-      location: {
-        type: 'Point',
-        coordinates: coords
-      }
-    });
-
-    await donor.save();
-
-    res.status(201).json({
-      message: 'Donor account registered successfully',
-      user: donor
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Register Hospital or NGO (requires Admin verification before login)
-router.post('/register-hospital-ngo', async (req, res) => {
-  try {
-    const { name, email, password, role, registrationNumber, licenseInfo, address, latitude, longitude } = req.body;
-
-    if (!name || !email || !password || !role || !registrationNumber || !address) {
-      return res.status(400).json({ error: 'Please provide all required fields' });
-    }
-
-    if (!['hospital', 'ngo'].includes(role)) {
-      return res.status(400).json({ error: 'Role must be either hospital or ngo' });
-    }
-
-    const existingOrg = await HospitalNGO.findOne({ email });
-    if (existingOrg) {
-      return res.status(400).json({ error: 'Institution with this email already exists' });
-    }
-
-    const coords = [
-      longitude ? parseFloat(longitude) : 72.8777,
-      latitude ? parseFloat(latitude) : 19.0760
-    ];
-
-    const org = new HospitalNGO({
-      name,
-      email,
-      password,
-      role,
-      registrationNumber,
-      licenseInfo: licenseInfo || '',
-      address,
-      location: {
-        type: 'Point',
-        coordinates: coords
-      },
-      isVerified: false // Needs admin approval
-    });
-
-    await org.save();
-
-    res.status(201).json({
-      message: 'Registration submitted successfully! Your account will be activated once verified by system admin.',
-      organization: org
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Login for Donor or Hospital/NGO
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password, accountType } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    if (accountType === 'hospital-ngo') {
-      const org = await HospitalNGO.findOne({ email, password });
-      if (!org) {
-        return res.status(401).json({ error: 'Invalid hospital/NGO credentials' });
-      }
-
-      if (!org.isVerified) {
-        return res.status(403).json({
-          error: 'Your institution account has not been approved by the Admin yet. Please wait for verification.'
-        });
-      }
-
-      return res.json({
-        message: 'Login successful',
-        userType: 'organization',
-        role: org.role,
-        data: org
-      });
-    }
-
-    // Default: Donor Account
-    const donor = await User.findOne({ email, password });
-    if (!donor) {
-      return res.status(401).json({ error: 'Invalid donor email or password' });
-    }
-
-    return res.json({
-      message: 'Login successful',
-      userType: 'donor',
-      role: 'donor',
-      data: donor
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+const { asyncRoute, parse, fail } = require('../lib/http');
+const v = require('../lib/validation');
+const { point } = require('../lib/geo');
+const { signToken, authenticate, models } = require('../middleware/auth');
+const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Too many authentication attempts. Try again in 15 minutes.' } });
+router.use(['/login', '/register-donor', '/register-hospital-ngo'], authLimit);
+router.post('/register-donor', asyncRoute(async (req, res) => {
+  const data = parse(v.donorRegistration, req.body);
+  const { latitude, longitude, ...fields } = data;
+  const donor = await User.create({ ...fields, ...(latitude !== undefined ? { location: point(longitude, latitude) } : {}) });
+  res.status(201).json({ message: 'Donor account registered successfully', user: donor, token: signToken(donor, 'donor', req.app.locals.config), role: 'donor' });
+}));
+router.post('/register-hospital-ngo', asyncRoute(async (req, res) => {
+  const { latitude, longitude, ...data } = parse(v.orgRegistration, req.body);
+  const organization = await HospitalNGO.create({ ...data, location: point(longitude, latitude) });
+  res.status(201).json({ message: 'Registration submitted. An admin must verify your institution before login.', organization });
+}));
+router.post('/login', asyncRoute(async (req, res) => {
+  const data = parse(v.login, req.body);
+  const type = data.accountType === 'hospital-ngo' ? 'organization' : data.accountType;
+  const account = await models[type].findOne({ email: data.email }).select('+password +tokenVersion');
+  if (!account || !await account.comparePassword(data.password)) fail(401, 'Invalid email or password');
+  if (!account.isActive) fail(403, 'Account is disabled');
+  if (type === 'organization' && (!account.isVerified || account.isScamReported)) fail(403, 'Your institution is awaiting admin verification or has been suspended');
+  res.json({ message: 'Login successful', token: signToken(account, type, req.app.locals.config), userType: type, role: type === 'organization' ? account.role : type, data: account });
+}));
+router.get('/me', authenticate, (req, res) => res.json({ data: req.auth.account, userType: req.auth.type, role: req.auth.role }));
+router.post('/logout', authenticate, asyncRoute(async (req, res) => {
+  await models[req.auth.type].updateOne({ _id: req.auth.account._id }, { $inc: { tokenVersion: 1 } });
+  res.json({ message: 'Signed out of all sessions' });
+}));
+router.put('/password', authenticate, asyncRoute(async (req, res) => {
+  const data = parse(v.z.object({ currentPassword: v.z.string().min(1).max(200), newPassword: v.password }).strict(), req.body);
+  const account = await models[req.auth.type].findById(req.auth.account._id).select('+password +tokenVersion');
+  if (!await account.comparePassword(data.currentPassword)) fail(401, 'Current password is incorrect');
+  account.password = data.newPassword;
+  account.tokenVersion++;
+  await account.save();
+  res.json({ message: 'Password changed. Please sign in again.' });
+}));
 module.exports = router;

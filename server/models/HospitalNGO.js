@@ -1,86 +1,15 @@
 const mongoose = require('mongoose');
-
-// Schema for Hospitals and NGOs
-const hospitalNGOSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true
-    },
-    password: {
-      type: String,
-      required: true
-    },
-    role: {
-      type: String,
-      required: true,
-      enum: ['hospital', 'ngo']
-    },
-    registrationNumber: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    licenseInfo: {
-      type: String,
-      default: ''
-    },
-    address: {
-      type: String,
-      required: true
-    },
-    // GeoJSON Point location for distance calculation & MongoDB geospatial queries
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true
-      }
-    },
-    // Verification by Admin before being active
-    isVerified: {
-      type: Boolean,
-      default: false
-    },
-    // Report scam flag - Admin can review and delete
-    isScamReported: {
-      type: Boolean,
-      default: false
-    },
-    scamReportReason: {
-      type: String,
-      default: ''
-    },
-    // Blood inventory bags count
-    inventory: {
-      'O+': { type: Number, default: 24 },
-      'O-': { type: Number, default: 3 },
-      'A+': { type: Number, default: 14 },
-      'A-': { type: Number, default: 6 },
-      'B+': { type: Number, default: 18 },
-      'B-': { type: Number, default: 4 },
-      'AB+': { type: Number, default: 9 },
-      'AB-': { type: Number, default: 1 }
-    }
-  },
-  {
-    timestamps: true
-  }
-);
-
-// 2dsphere index for MongoDB geospatial queries
-hospitalNGOSchema.index({ location: '2dsphere' });
-
-module.exports = mongoose.model('HospitalNGO', hospitalNGOSchema);
+const { bloodTypes, pointSchema, accountPlugin } = require('./shared');
+const inventory = Object.fromEntries(bloodTypes.map(type => [type, { type: Number, min: 0, default: 0, validate: Number.isInteger }]));
+const schema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  role: { type: String, enum: ['hospital', 'ngo'], required: true },
+  registrationNumber: { type: String, required: true, unique: true, trim: true },
+  licenseInfo: { type: String, default: '' }, address: { type: String, required: true },
+  location: { type: pointSchema, required: true },
+  isVerified: { type: Boolean, default: false }, isScamReported: { type: Boolean, default: false },
+  scamReportReason: { type: String, default: '' }, inventory
+}, { timestamps: true });
+schema.plugin(accountPlugin);
+schema.index({ location: '2dsphere' });
+module.exports = mongoose.model('HospitalNGO', schema);

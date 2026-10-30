@@ -1,12 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { api, subscribeNotifications } from '../lib/api';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Award, LogOut, ShieldCheck, Heart } from 'lucide-react';
+import { Bell, Award, LogOut, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  useEffect(() => {
+    if (!user?._id) return;
+    const controller = new AbortController();
+    const connectedAt = Date.now();
+    let closed = false, retry, lastId;
+    api('/notifications?unread=true', { signal: controller.signal }).then(setNotifications).catch(() => {});
+    const listen = async () => {
+      try {
+        await subscribeNotifications(notification => {
+          lastId = notification._id;
+          if (!notification.readAt) setNotifications(prev => [notification, ...prev.filter(n => n._id !== notification._id)].slice(0, 50));
+          if (+new Date(notification.createdAt) >= connectedAt) window.dispatchEvent(new CustomEvent('bloodlink-notification', { detail: notification }));
+        }, controller.signal, lastId);
+      } catch (err) { if (!closed && err.status === 401) return; }
+      if (!closed) retry = setTimeout(listen, 3000);
+    };
+    listen();
+    return () => { closed = true; clearTimeout(retry); controller.abort(); };
+  }, [user?._id]);
 
   // If on login/register page, hide standard nav or keep minimal
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -44,9 +66,10 @@ export default function Navbar() {
 
         {(role === 'hospital' || role === 'ngo') && (
           <>
-            <NavLink to="/hospital/sos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            {role === 'hospital' && <NavLink to="/hospital/sos" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               SOS Management
-            </NavLink>
+            </NavLink>}
+            <NavLink to="/camps" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>Camps</NavLink>
             <NavLink to="/hospital/donors" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               Donor Search
             </NavLink>
@@ -65,7 +88,7 @@ export default function Navbar() {
       {/* Right Side Actions */}
       <div className="nav-actions">
         {/* Quick Link to Admin Console */}
-        <NavLink
+        {role === 'admin' && <NavLink
           to="/admin"
           style={{
             fontSize: '0.78rem',
@@ -80,19 +103,26 @@ export default function Navbar() {
           title="Admin Verification Portal"
         >
           <ShieldCheck size={14} /> Admin
-        </NavLink>
+        </NavLink>}
 
         {/* Bell Icon */}
-        <div className="notification-bell" title="Alerts & Notifications">
-          <Bell size={20} />
-          <span className="dot"></span>
+        <div style={{ position: 'relative' }}>
+          <button className="notification-bell" title="Alerts & Notifications" aria-label="Notifications" onClick={() => setShowNotifications(prev => !prev)}><Bell size={20} />{notifications.length > 0 && <span className="dot" />}</button>
+          {showNotifications && <div className="card" style={{ position: 'absolute', right: 0, top: '2rem', width: 'min(340px, 85vw)', maxHeight: '400px', overflowY: 'auto', zIndex: 2500 }}>
+            <h3>Notifications</h3>
+            {!notifications.length && <p>No unread notifications.</p>}
+            {notifications.map(notification => <button key={notification._id} style={{ display: 'block', textAlign: 'left', padding: '0.75rem', width: '100%', margin: '0.5rem 0' }} onClick={async () => {
+              try { await api('/notifications/' + notification._id + '/read', { method: 'PUT' }); setNotifications(prev => prev.filter(n => n._id !== notification._id)); }
+              catch { /* Keep unread until the acknowledgement reaches the server. */ }
+            }}>{notification.message}</button>)}
+          </div>}
         </div>
 
         {/* PTS Coin Badge (Only for Donors) */}
         {role === 'donor' && (
           <div className="pts-badge">
             <Award size={15} />
-            <span>{user?.coins !== undefined ? user.coins : 450} PTS</span>
+            <span>{user?.coins ?? 0} PTS</span>
           </div>
         )}
 

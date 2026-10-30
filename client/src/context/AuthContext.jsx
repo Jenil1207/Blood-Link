@@ -1,54 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { api, getToken, setToken } from '../lib/api';
 const AuthContext = createContext();
-
 export function AuthProvider({ children }) {
-  // Default to Donor John Doe from seed data for immediate testing
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('bloodlink_user');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return null; }
-    }
-    return {
-      _id: 'mock-user-id',
-      donorId: 'BL-2024-78542',
-      name: 'John Doe',
-      email: 'useremail@gmail.com',
-      bloodType: 'O+',
-      coins: 450,
-      totalDonations: 8,
-      badgesCount: 3,
-      userType: 'donor',
-      role: 'donor',
-      lastDonationDate: '2025-10-14'
-    };
-  });
-
-  const [role, setRole] = useState(() => {
-    return localStorage.getItem('bloodlink_role') || 'donor';
-  });
-
-  const loginUser = (userData, userRole) => {
-    setUser(userData);
-    setRole(userRole);
-    localStorage.setItem('bloodlink_user', JSON.stringify(userData));
-    localStorage.setItem('bloodlink_role', userRole);
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState('donor');
+  const [loading, setLoading] = useState(() => Boolean(getToken()));
+  useEffect(() => {
+    let active = true;
+    // Medical profiles stay in memory; only the access token lives in session storage.
+    localStorage.removeItem('bloodlink_user'); localStorage.removeItem('bloodlink_role');
+    const clear = () => { setUser(null); setRole('donor'); };
+    window.addEventListener('bloodlink-session-expired', clear);
+    if (getToken()) api('/auth/me').then(data => {
+      if (active) { setUser(data.data); setRole(data.role); }
+    }).catch(() => { if (active) { setToken(null); clear(); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; window.removeEventListener('bloodlink-session-expired', clear); };
+  }, []);
+  const loginUser = (userData, userRole, token) => {
+    setToken(token); setUser(userData); setRole(userRole);
   };
-
-  const logout = () => {
-    setUser(null);
-    setRole('donor');
-    localStorage.removeItem('bloodlink_user');
-    localStorage.removeItem('bloodlink_role');
+  const logout = async () => {
+    try { if (getToken()) await api('/auth/logout', { method: 'POST' }); }
+    catch { /* Clear the local session even when the network is unavailable. */ }
+    finally { setToken(null); setUser(null); setRole('donor'); }
   };
-
-  return (
-    <AuthContext.Provider value={{ user, setUser, role, setRole, loginUser, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, setUser, role, loginUser, logout, loading }}>{children}</AuthContext.Provider>;
 }
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export function useAuth() { return useContext(AuthContext); }

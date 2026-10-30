@@ -14,28 +14,30 @@ import HospitalDonorSearchPage from './pages/HospitalDonorSearchPage';
 import HospitalUpdateDonorRecordsPage from './pages/HospitalUpdateDonorRecordsPage';
 
 function MainRoutes() {
-  const { role } = useAuth();
+  const { user, role, loading } = useAuth();
+  const guard = (element, allowed) => !user ? <Navigate to="/login" replace /> : allowed.includes(role) ? element : <Navigate to={role === 'admin' ? '/admin' : role === 'donor' ? '/dashboard' : '/hospital/donors'} replace />;
+  if (loading) return <p className="page-container">Loading your session...</p>;
 
   return (
     <>
-      <Navbar />
+      <Navbar key={user?._id || 'anonymous'} />
       <Routes>
         {/* Auth & Admin routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={guard(<AdminPage />, ['admin'])} />
 
         {/* Donor routes */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/camps" element={<NearbyCampsPage />} />
-        <Route path="/rewards" element={<RewardsStorePage />} />
-        <Route path="/profile" element={<DonorProfilePage />} />
-        <Route path="/records" element={<PatientRecordsPage />} />
+        <Route path="/dashboard" element={guard(<DashboardPage />, ['donor'])} />
+        <Route path="/camps" element={guard(<NearbyCampsPage />, ['donor', 'hospital', 'ngo'])} />
+        <Route path="/rewards" element={guard(<RewardsStorePage />, ['donor'])} />
+        <Route path="/profile" element={guard(<DonorProfilePage />, ['donor'])} />
+        <Route path="/records" element={guard(<PatientRecordsPage />, ['donor'])} />
 
         {/* Hospital / NGO routes */}
-        <Route path="/hospital/sos" element={<HospitalSosPage />} />
-        <Route path="/hospital/donors" element={<HospitalDonorSearchPage />} />
-        <Route path="/hospital/update-record" element={<HospitalUpdateDonorRecordsPage />} />
+        <Route path="/hospital/sos" element={guard(<HospitalSosPage />, ['hospital'])} />
+        <Route path="/hospital/donors" element={guard(<HospitalDonorSearchPage />, ['hospital', 'ngo'])} />
+        <Route path="/hospital/update-record" element={guard(<HospitalUpdateDonorRecordsPage />, ['hospital', 'ngo'])} />
 
         {/* Default route */}
         <Route path="/" element={<Navigate to="/login" replace />} />
