@@ -1,120 +1,29 @@
+import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, Trash2, AlertTriangle, Building2, RefreshCw, Filter } from 'lucide-react';
-
+import { ShieldCheck, CheckCircle2, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 export default function AdminPage() {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'scams' | 'all'
+  const [activeTab, setActiveTab] = useState('pending');
   const [actionMsg, setActionMsg] = useState('');
-
-  // Fetch organizations from API (with fallback mock data)
   const fetchOrganizations = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:5000/api/admin/organizations');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setOrganizations(data);
-    } catch (err) {
-      // Fallback mock data for testing UI immediately
-      setOrganizations([
-        {
-          _id: 'pending-1',
-          name: 'Seva Samarpan Health Trust',
-          email: 'sevatrust@gmail.com',
-          role: 'ngo',
-          registrationNumber: 'NGO-MH-2026-999',
-          licenseInfo: 'Charity Commissioner Reg No. E-34821',
-          address: 'Ghatkopar West, Mumbai',
-          isVerified: false,
-          isScamReported: false,
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'scam-1',
-          name: 'Fake Blood Helpline Trust',
-          email: 'fakehelpline@gmail.com',
-          role: 'ngo',
-          registrationNumber: 'FAKE-000-000',
-          licenseInfo: 'Unverified unofficial',
-          address: 'Unknown location',
-          isVerified: true,
-          isScamReported: true,
-          scamReportReason: 'Charging exorbitant processing fees to patients unlawfully',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'hosp-1',
-          name: 'XYZ Hospital',
-          email: 'xyzhospital@gmail.com',
-          role: 'hospital',
-          registrationNumber: 'HOSP-MH-2024-001',
-          licenseInfo: 'MOHFW Certified Class-A Blood Bank & Trauma Care',
-          address: 'Central Medical Enclave, Mumbai',
-          isVerified: true,
-          isScamReported: false,
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'hosp-2',
-          name: 'City General Hospital',
-          email: 'citygeneral@gmail.com',
-          role: 'hospital',
-          registrationNumber: 'HOSP-MH-2024-002',
-          licenseInfo: 'State Health Board Verified',
-          address: 'Shivaji Marg, Mumbai',
-          isVerified: true,
-          isScamReported: false,
-          createdAt: new Date().toISOString()
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    try { setOrganizations((await api('/admin/organizations')).filter(org => org.isActive)); }
+    catch (err) { setActionMsg(err.message); }
+    finally { setLoading(false); }
   };
-
-  useEffect(() => {
-    fetchOrganizations();
-  }, []);
-
-  // Approve / Verify Organization
+  useEffect(() => { fetchOrganizations(); }, []);
   const handleVerify = async (id, name) => {
-    try {
-      await fetch(`http://localhost:5000/api/admin/verify/${id}`, { method: 'PUT' });
-    } catch (e) {
-      // proceed with local state update
-    }
-    setOrganizations((prev) =>
-      prev.map((org) => (org._id === id ? { ...org, isVerified: true } : org))
-    );
-    setActionMsg(`✅ Successfully verified and activated "${name}"!`);
-    setTimeout(() => setActionMsg(''), 4000);
+    try { await api('/admin/verify/' + id, { method: 'PUT' }); await fetchOrganizations(); setActionMsg('Verified ' + name); }
+    catch (err) { setActionMsg(err.message); }
   };
-
-  // Delete Scam or Unauthorized Account
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete the account for "${name}"?`)) return;
-
-    try {
-      await fetch(`http://localhost:5000/api/admin/org/${id}`, { method: 'DELETE' });
-    } catch (e) {
-      // proceed with local state update
-    }
-    setOrganizations((prev) => prev.filter((org) => org._id !== id));
-    setActionMsg(`🗑️ Deleted account "${name}" permanently.`);
-    setTimeout(() => setActionMsg(''), 4000);
+    if (!window.confirm('Disable ' + name + '? Donation and audit history will be retained.')) return;
+    try { await api('/admin/org/' + id, { method: 'DELETE' }); await fetchOrganizations(); setActionMsg('Disabled ' + name); }
+    catch (err) { setActionMsg(err.message); }
   };
-
-  // Filter organizations based on tab
-  const pendingOrgs = organizations.filter((o) => !o.isVerified);
-  const scamOrgs = organizations.filter((o) => o.isScamReported);
-
-  const displayedList =
-    activeTab === 'pending'
-      ? pendingOrgs
-      : activeTab === 'scams'
-      ? scamOrgs
-      : organizations;
+  const pendingOrgs = organizations.filter(o => !o.isVerified);
+  const scamOrgs = organizations.filter(o => o.isScamReported);
+  const displayedList = activeTab === 'pending' ? pendingOrgs : activeTab === 'scams' ? scamOrgs : organizations;
 
   return (
     <div className="page-container" style={{ maxWidth: '1100px' }}>

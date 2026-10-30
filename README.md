@@ -33,3 +33,34 @@ BloodLink/
 ├── server/              # Express & MongoDB backend API
 └── README.md            # Project overview & documentation
 ```
+
+---
+
+## Backend setup and API documentation
+
+After the local environment has been configured, start MongoDB, Express and React together from this folder:
+
+```sh
+npm run dev
+```
+
+On macOS, you can also double-click `Start BloodLink.command`. The launcher initializes the local MongoDB replica set when needed, waits for the API to become ready, and opens the React development server on port 5173. Press Ctrl+C in that terminal to stop the stack. MongoDB data is preserved in `.local/mongodb`; local login details are saved in `.local/credentials.txt` during setup. Both `.local/` and `.env` files are excluded from Git.
+
+The launcher uses MongoDB Community installed with Homebrew and the Node dependencies in `server` and `client`. It reads the API port and database URI from `server/.env`. If you change the API port, update `client/.env` to match. The React server uses port 5173 without silently moving to another port.
+
+The Express/MongoDB backend now includes authenticated donor/hospital/NGO/admin access, medical history and known abnormalities, consent-aware donor profiles, geospatial donor/camp discovery, camp booking, clinical donation records, inventory, SOS alerts with live notifications, and transactional Blood Coin/voucher redemption.
+
+Start with **[server/README.md](server/README.md)** for environment setup, MongoDB Atlas/local replica-set instructions, admin/demo creation, example requests and the demo walkthrough. Import **[server/openapi.json](server/openapi.json)** into Postman for the full API reference. The server also exposes it at `GET /api/docs`.
+
+The React client now attaches authentication tokens and uses saved API results for its main donor, institution, booking, record and reward workflows. Camp creation/management and reward administration are available through the documented API for further frontend work.
+
+```sh
+npm --prefix server ci
+# Copy server/.env.example to server/.env and fill in your own database URI and JWT secret.
+npm --prefix server run create-admin
+# Optional: set DEMO_PASSWORD in server/.env, then:
+npm --prefix server run seed
+npm --prefix server run dev
+```
+
+Run React separately with `npm --prefix client ci` and `npm --prefix client run dev`. Backend integration tests: `npm --prefix server test`.

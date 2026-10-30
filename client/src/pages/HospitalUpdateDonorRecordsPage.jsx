@@ -1,161 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
-
+import { CheckCircle2 } from 'lucide-react';
 export default function HospitalUpdateDonorRecordsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, role } = useAuth();
-
-  // donor id from url query or default
-  const paramDonorId = searchParams.get('donorId') || 'BL-2024-78542';
+  const isHospital = role === 'hospital';
+  const paramDonorId = searchParams.get('donorId') || '';
   const [lookupId, setLookupId] = useState(paramDonorId);
-
-  // donor info loaded before blood draw
-  const [donorInfo, setDonorInfo] = useState({
-    donorId: 'BL-2024-78542',
-    name: 'John Doe',
-    bloodType: 'O+',
-    totalDonations: 8,
-    lastDonation: 'Oct 14, 2025',
-    isEligible: true,
-    eligibilityText: 'Eligible Now',
-    hemoglobin: 14.5,
-    bloodPressure: '122/82'
-  });
-
-  // toggle between donation entry form and camp attendance only
-  const [entryType, setEntryType] = useState('donation'); // 'donation' or 'attendance'
-
-  // form inputs matching pdf
-  const [donationDate, setDonationDate] = useState('October 24, 2025');
+  const [donorInfo, setDonorInfo] = useState(null);
+  const [entryType, setEntryType] = useState(isHospital ? 'donation' : 'attendance');
+  const [donationDate, setDonationDate] = useState(() => new Date().toLocaleDateString());
   const [bloodTypeCollected, setBloodTypeCollected] = useState('O+');
   const [quantityMl, setQuantityMl] = useState(450);
   const [donationType, setDonationType] = useState('Whole Blood');
-  const [collectionCenter, setCollectionCenter] = useState('Camp Blood');
-  const [attendingStaff, setAttendingStaff] = useState('Dr. XYZ');
+  const [collectionCenter, setCollectionCenter] = useState(user.name);
+  const [attendingStaff, setAttendingStaff] = useState('');
   const [screeningStatus, setScreeningStatus] = useState('Passed Screening');
-  const [hemoglobin, setHemoglobin] = useState(14.5);
-  const [bloodPressure, setBloodPressure] = useState('122/82');
-
-  // coins & endorsement toggles
-  const [isDonationToggled, setIsDonationToggled] = useState(true);
-  const [isAttendanceToggled, setIsAttendanceToggled] = useState(false);
+  const [hemoglobin, setHemoglobin] = useState('');
+  const [bloodPressure, setBloodPressure] = useState('');
+  const [campId, setCampId] = useState('');
+  const [isDonationToggled, setIsDonationToggled] = useState(isHospital);
+  const [isAttendanceToggled, setIsAttendanceToggled] = useState(!isHospital);
   const [isEndorsementToggled, setIsEndorsementToggled] = useState(false);
-  const [declarationChecked, setDeclarationChecked] = useState(true);
-
-  // status notifications
+  const [declarationChecked, setDeclarationChecked] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // check if current user is hospital or ngo
-  // ONLY HOSPITALS CAN ENDORSE, NGOs CAN NOT
-  const isHospital = role === 'hospital';
-
-  // lookup donor info
-  const handleLookup = async (idToSearch) => {
-    setErrorMsg('');
+  const pendingRequest = useRef(null);
+  const handleLookup = useCallback(async id => {
     try {
-      const res = await fetch(`http://localhost:5000/api/donors/${idToSearch || lookupId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDonorInfo({
-          donorId: data.donorId,
-          name: data.name,
-          bloodType: data.bloodType,
-          totalDonations: data.totalDonations,
-          lastDonation: data.lastDonationDate
-            ? new Date(data.lastDonationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'Oct 14, 2025',
-          isEligible: data.eligibility?.isEligible ?? true,
-          eligibilityText: data.eligibility?.statusText || 'Eligible Now',
-          hemoglobin: data.hemoglobin || 14.5,
-          bloodPressure: data.bloodPressure || '122/82'
-        });
-        setBloodTypeCollected(data.bloodType || 'O+');
-      } else {
-        setErrorMsg('Donor not found with this ID');
-      }
-    } catch (e) {
-      // offline lookup
-      if (lookupId === 'BL-2024-78542') {
-        setDonorInfo({
-          donorId: 'BL-2024-78542',
-          name: 'John Doe',
-          bloodType: 'O+',
-          totalDonations: 8,
-          lastDonation: 'Oct 14, 2025',
-          isEligible: true,
-          eligibilityText: 'Eligible Now',
-          hemoglobin: 14.5,
-          bloodPressure: '122/82'
-        });
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (paramDonorId) {
-      handleLookup(paramDonorId);
-    }
-  }, [paramDonorId]);
-
-  // submit record
-  const handleSubmitRecord = async (e) => {
+      const data = await api('/donors/' + encodeURIComponent(id));
+      setErrorMsg('');
+      setDonorInfo({ ...data, lastDonation: data.lastDonationDate ? new Date(data.lastDonationDate).toLocaleDateString() : 'No donations yet',
+        isEligible: data.eligibility.scheduleEligible, eligibilityText: data.eligibility.statusText });
+      setBloodTypeCollected(data.bloodType);
+    } catch (err) { setDonorInfo(null); setErrorMsg(err.message); }
+  }, []);
+  useEffect(() => { if (paramDonorId) handleLookup(paramDonorId); }, [paramDonorId, handleLookup]);
+  const handleSubmitRecord = async e => {
     e.preventDefault();
-    if (!declarationChecked) {
-      setErrorMsg('Please confirm the verification declaration checkbox');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg('');
-
+    if (!donorInfo || !declarationChecked) { setErrorMsg('Look up a donor and confirm the declaration first'); return; }
+    setLoading(true); setErrorMsg(''); setSuccessMsg('');
     try {
+      const donating = isHospital && isDonationToggled && entryType === 'donation';
+      const attendance = isAttendanceToggled || entryType === 'attendance';
       const payload = {
-        donorBLId: donorInfo.donorId,
-        facilityId: user?._id,
-        facilityName: user?.name || (isHospital ? 'XYZ Hospital' : 'Community NGO'),
-        facilityType: isHospital ? 'hospital' : 'ngo',
-        dateString: donationDate,
-        bloodTypeCollected,
-        quantityMl: entryType === 'donation' ? parseInt(quantityMl) : 0,
-        donationType: entryType === 'donation' ? donationType : 'Event Attendance Only',
-        collectionCenter,
-        attendingStaff,
-        screeningStatus: screeningStatus === 'Passed Screening' ? 'Passed' : 'Deferred',
-        hemoglobin: parseFloat(hemoglobin),
-        bloodPressure,
-        isDonation: isDonationToggled && entryType === 'donation',
-        isCampAttendance: isAttendanceToggled || entryType === 'attendance',
-        isEndorsement: isHospital && isEndorsementToggled
+        donorBLId: donorInfo.donorId, bloodTypeCollected, donationType: donating ? donationType : 'Event Attendance Only',
+        ...(donating ? { quantityMl: Number(quantityMl) } : {}),
+        collectionCenter, attendingStaff, screeningStatus: screeningStatus === 'Passed Screening' ? 'Passed' : 'Deferred',
+        ...(isHospital && hemoglobin !== '' ? { hemoglobin: Number(hemoglobin) } : {}),
+        ...(isHospital && bloodPressure ? { bloodPressure } : {}),
+        isDonation: donating, isCampAttendance: attendance, isEndorsement: isHospital && isEndorsementToggled,
+        ...(attendance ? { campId } : {})
       };
-
-      const res = await fetch('http://localhost:5000/api/records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to submit record');
-      }
-
-      setSuccessMsg(`Record verified and added for donor ${donorInfo.name} (${donorInfo.donorId})!`);
-      setTimeout(() => {
-        navigate('/hospital/donors');
-      }, 2000);
-    } catch (err) {
-      setSuccessMsg(`Record added for ${donorInfo.name}! Coins and eligibility updated.`);
-      setTimeout(() => {
-        navigate('/hospital/donors');
-      }, 2000);
-    } finally {
-      setLoading(false);
-    }
+      const serialized = JSON.stringify(payload);
+      if (pendingRequest.current?.serialized !== serialized) pendingRequest.current = { serialized, key: crypto.randomUUID() };
+      await api('/records', { method: 'POST', headers: { 'Idempotency-Key': pendingRequest.current.key }, body: payload });
+      setSuccessMsg('Record saved for ' + donorInfo.name); navigate('/hospital/donors');
+    } catch (err) { setErrorMsg(err.message); } finally { setLoading(false); }
   };
 
   return (
@@ -294,6 +199,8 @@ export default function HospitalUpdateDonorRecordsPage() {
 
       {/* Main Entry Form */}
       <form onSubmit={handleSubmitRecord}>
+        <div className="form-group"><label className="form-label" htmlFor="camp-id">CAMP ID (required for attendance)</label><input id="camp-id" className="form-input" value={campId} onChange={e => setCampId(e.target.value)} /></div>
+        {isHospital && donorInfo?.medicalHistory && <div className="card"><h3>Donor medical disclosures</h3><p>{donorInfo.healthProblems}</p>{Object.entries(donorInfo.medicalHistory).map(([field, value]) => <p key={field}><strong>{field}: </strong>{Array.isArray(value) ? value.join(', ') || 'None disclosed' : value || 'None disclosed'}</p>)}<p><strong>Known abnormalities: </strong>{donorInfo.knownAbnormalities?.join(', ') || 'None disclosed'}</p></div>}
         <div className="card" style={{ padding: '2rem', marginBottom: '1.75rem' }}>
           {/* Form Type Toggle (Donation vs Camp Attendance) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -304,6 +211,7 @@ export default function HospitalUpdateDonorRecordsPage() {
             <div style={{ display: 'flex', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
               <button
                 type="button"
+                disabled={!isHospital}
                 onClick={() => {
                   setEntryType('donation');
                   setIsDonationToggled(true);

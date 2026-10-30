@@ -1,3 +1,4 @@
+import { api } from '../lib/api';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,184 +7,63 @@ import { Eye, EyeOff, Heart, Shield, Building2, User, AlertCircle, CheckCircle2 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { loginUser } = useAuth();
-
-  // Mode: 'login' or 'register'
   const [authMode, setAuthMode] = useState('login');
-  // Account Type: 'donor' or 'hospital-ngo'
   const [accountType, setAccountType] = useState('donor');
-
-  // Login Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Register Form States (Donor)
   const [donorName, setDonorName] = useState('');
   const [donorBloodType, setDonorBloodType] = useState('O+');
-  const [donorDob, setDonorDob] = useState('1998-05-15');
-  const [donorAddress, setDonorAddress] = useState('Mumbai, Maharashtra');
-  const [donorHealth, setDonorHealth] = useState('None');
-
-  // Register Form States (Hospital / NGO)
+  const [donorDob, setDonorDob] = useState('');
+  const [donorAddress, setDonorAddress] = useState('');
+  const [donorHealth, setDonorHealth] = useState('');
+  const [medical, setMedical] = useState({ conditions: '', medications: '', allergies: '', surgeries: '', notes: '' });
+  const [abnormalities, setAbnormalities] = useState('');
+  const [shareMedicalHistory, setShareMedicalHistory] = useState(false);
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [orgName, setOrgName] = useState('');
   const [orgRole, setOrgRole] = useState('hospital');
   const [orgRegNo, setOrgRegNo] = useState('');
-  const [orgLicense, setOrgLicense] = useState('');
+  const [orgLicense] = useState('');
   const [orgAddress, setOrgAddress] = useState('');
-
-  // Status & Error Messages
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Handle Login Submit
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-    setLoading(true);
-
+  const destination = role => role === 'admin' ? '/admin' : role === 'donor' ? '/dashboard' : role === 'ngo' ? '/hospital/donors' : '/hospital/sos';
+  const handleLogin = async e => {
+    e.preventDefault(); setErrorMsg(''); setSuccessMsg(''); setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, accountType })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to login');
-      }
-
-      // Save user in context
-      loginUser(data.data, data.role);
-
-      if (data.role === 'donor') {
-        navigate('/dashboard');
-      } else {
-        navigate('/hospital/sos');
-      }
-    } catch (err) {
-      // In case server is offline or mock login during dev
-      if (err.message.includes('Failed to fetch')) {
-        handleDemoLogin(accountType === 'donor' ? 'donor' : orgRole);
-      } else {
-        setErrorMsg(err.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+      const result = await api('/auth/login', { method: 'POST', body: { email, password, accountType } });
+      loginUser(result.data, result.role, result.token); navigate(destination(result.role));
+    } catch (err) { setErrorMsg(err.message); } finally { setLoading(false); }
   };
-
-  // Handle Registration Submit
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-    setLoading(true);
-
+  const handleRegister = async e => {
+    e.preventDefault(); setErrorMsg(''); setSuccessMsg(''); setLoading(true);
     try {
+      const coordinates = latitude !== '' || longitude !== '' ? { latitude: Number(latitude), longitude: Number(longitude) } : {};
+      if ((latitude === '') !== (longitude === '')) throw new Error('Enter both latitude and longitude');
+      const list = value => value.split(',').map(v => v.trim()).filter(Boolean);
       if (accountType === 'donor') {
-        const res = await fetch('http://localhost:5000/api/auth/register-donor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: donorName,
-            email,
-            password,
-            bloodType: donorBloodType,
-            dob: donorDob,
-            address: donorAddress,
-            healthProblems: donorHealth
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Registration failed');
-
-        setSuccessMsg('Account created successfully! Logging you in...');
-        setTimeout(() => {
-          loginUser(data.user, 'donor');
-          navigate('/dashboard');
-        }, 1200);
+        const result = await api('/auth/register-donor', { method: 'POST', body: {
+          name: donorName, email, password, bloodType: donorBloodType, dob: donorDob, address: donorAddress, healthProblems: donorHealth,
+          medicalHistory: Object.fromEntries(Object.entries(medical).map(([key, value]) => [key, key === 'notes' ? value : list(value)])),
+          knownAbnormalities: list(abnormalities), shareMedicalHistory, ...coordinates
+        } });
+        loginUser(result.user, 'donor', result.token); navigate('/dashboard');
       } else {
-        const res = await fetch('http://localhost:5000/api/auth/register-hospital-ngo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: orgName,
-            email,
-            password,
-            role: orgRole,
-            registrationNumber: orgRegNo,
-            licenseInfo: orgLicense,
-            address: orgAddress
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Registration failed');
-
-        setSuccessMsg(data.message || 'Submitted successfully! Waiting for Admin verification.');
+        const result = await api('/auth/register-hospital-ngo', { method: 'POST', body: {
+          name: orgName, email, password, role: orgRole, registrationNumber: orgRegNo, licenseInfo: orgLicense, address: orgAddress, ...coordinates
+        } });
+        setSuccessMsg(result.message); setAuthMode('login');
       }
-    } catch (err) {
-      setErrorMsg(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setErrorMsg(err.message); } finally { setLoading(false); }
   };
-
-  // Quick Demo Login helper for examiner / quick testing
-  const handleDemoLogin = (type) => {
-    if (type === 'donor') {
-      loginUser(
-        {
-          _id: 'mock-donor-id',
-          donorId: 'BL-2024-78542',
-          name: 'John Doe',
-          email: 'useremail@gmail.com',
-          bloodType: 'O+',
-          coins: 450,
-          totalDonations: 8,
-          badgesCount: 3,
-          lastDonationDate: '2025-10-14',
-          screeningStatus: 'Passed',
-          hemoglobin: 14.2,
-          bloodPressure: '118/78'
-        },
-        'donor'
-      );
-      navigate('/dashboard');
-    } else if (type === 'hospital') {
-      loginUser(
-        {
-          _id: 'mock-hospital-id',
-          name: 'XYZ Hospital',
-          email: 'xyzhospital@gmail.com',
-          role: 'hospital',
-          isVerified: true,
-          inventory: {
-            'O+': 24, 'O-': 3, 'A+': 14, 'A-': 6, 'B+': 18, 'B-': 4, 'AB+': 9, 'AB-': 1
-          }
-        },
-        'hospital'
-      );
-      navigate('/hospital/sos');
-    } else if (type === 'ngo') {
-      loginUser(
-        {
-          _id: 'mock-ngo-id',
-          name: 'Red Cross Chapter 4',
-          email: 'redcross.mumbai@gmail.com',
-          role: 'ngo',
-          isVerified: true
-        },
-        'ngo'
-      );
-      navigate('/hospital/sos');
-    } else if (type === 'admin') {
-      loginUser({ name: 'System Admin', email: 'admin@bloodlink.org' }, 'admin');
-      navigate('/admin');
-    }
+  const handleDemoLogin = type => {
+    setAuthMode('login'); setAccountType(type === 'admin' ? 'admin' : type === 'donor' ? 'donor' : 'hospital-ngo');
+    if (type === 'hospital' || type === 'ngo') setOrgRole(type);
+    setEmail(type === 'admin' ? 'admin@bloodlink.local' : type + '@bloodlink.local');
+    setPassword(''); setErrorMsg('Enter the password configured in server/.env. Demo accounts require npm run seed; admins require npm run create-admin.');
   };
 
   return (
@@ -284,7 +164,7 @@ export default function LoginPage() {
               marginBottom: '0.65rem'
             }}
           >
-            Quick 1-Click Demo Login
+            Demo Shortcuts (Password Required)
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
@@ -439,6 +319,8 @@ export default function LoginPage() {
           </div>
 
           {/* Error & Success Alerts */}
+          <button type="button" onClick={() => { setAccountType('admin'); setAuthMode('login'); }} style={{ marginBottom: '1rem' }}>Admin sign in</button>
+          {accountType === 'admin' && <p>Signing in as an administrator.</p>}
           {errorMsg && (
             <div
               style={{
@@ -538,6 +420,7 @@ export default function LoginPage() {
                   <span
                     onClick={() => {
                       setAuthMode('register');
+                      if (accountType === 'admin') setAccountType('donor');
                       setErrorMsg('');
                     }}
                     style={{ color: '#e63946', fontWeight: 700, cursor: 'pointer' }}
@@ -697,6 +580,24 @@ export default function LoginPage() {
                 </>
               )}
 
+              {accountType === 'donor' && <>
+                {['conditions', 'medications', 'allergies', 'surgeries', 'notes'].map(field => (
+                  <div className="form-group" key={field}>
+                    <label className="form-label" htmlFor={'medical-' + field}>{field.toUpperCase()} {field !== 'notes' && '(comma separated)'}</label>
+                    <textarea id={'medical-' + field} className="form-input" value={medical[field]} onChange={e => setMedical(prev => ({ ...prev, [field]: e.target.value }))} />
+                  </div>
+                ))}
+                <div className="form-group">
+                  <label className="form-label" htmlFor="abnormalities">KNOWN ABNORMALITIES (comma separated)</label>
+                  <textarea id="abnormalities" className="form-input" value={abnormalities} onChange={e => setAbnormalities(e.target.value)} />
+                </div>
+                <label style={{ display: 'block', marginBottom: '1rem' }}><input type="checkbox" checked={shareMedicalHistory} onChange={e => setShareMedicalHistory(e.target.checked)} /> Allow verified hospitals to review my medical history for donation screening.</label>
+              </>}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group"><label className="form-label" htmlFor="latitude">LATITUDE</label><input id="latitude" type="number" step="any" min="-90" max="90" className="form-input" value={latitude} onChange={e => setLatitude(e.target.value)} required={accountType !== 'donor'} /></div>
+                <div className="form-group"><label className="form-label" htmlFor="longitude">LONGITUDE</label><input id="longitude" type="number" step="any" min="-180" max="180" className="form-input" value={longitude} onChange={e => setLongitude(e.target.value)} required={accountType !== 'donor'} /></div>
+              </div>
+              <p style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Location is needed for nearby camps and emergency alerts. Donors can add it later in My Profile.</p>
               {/* Common Credentials */}
               <div className="form-group">
                 <label className="form-label">EMAIL ADDRESS</label>

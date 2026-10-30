@@ -32,3 +32,5 @@ Thumbs.db
 .antigravity/
 
 *.pdf
+# Local database, logs, and setup credentials
+.local/

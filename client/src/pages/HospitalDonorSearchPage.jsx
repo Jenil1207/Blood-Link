@@ -1,105 +1,28 @@
+import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserCheck } from 'lucide-react';
-
+import { Search } from 'lucide-react';
 export default function HospitalDonorSearchPage() {
   const navigate = useNavigate();
-
-  // search input state
   const [searchTerm, setSearchTerm] = useState('');
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // default donors list matching the search pdf
-  const defaultDonors = [
-    {
-      _id: 'd-1',
-      donorId: 'BL-2024-78542',
-      name: 'John Doe',
-      bloodType: 'O+',
-      distance: '2.4 km away',
-      donatedTimes: 8,
-      eligibility: 'Eligible Now',
-      endorsements: 3
-    },
-    {
-      _id: 'd-2',
-      donorId: 'BL-2024-91204',
-      name: 'Aarav Patel',
-      bloodType: 'O+',
-      distance: '3.1 km away',
-      donatedTimes: 12,
-      eligibility: 'Eligible Now',
-      endorsements: 5
-    },
-    {
-      _id: 'd-3',
-      donorId: 'BL-2024-44281',
-      name: 'Priya Sharma',
-      bloodType: 'O+',
-      distance: '5.8 km away',
-      donatedTimes: 4,
-      eligibility: 'Eligible Now',
-      endorsements: 2
-    },
-    {
-      _id: 'd-4',
-      donorId: 'BL-2024-11093',
-      name: 'Rohan Deshmukh',
-      bloodType: 'O+',
-      distance: '8.2 km away',
-      donatedTimes: 15,
-      eligibility: 'Eligible Now',
-      endorsements: 6
-    }
-  ];
-
-  // load default donors or search via api
+  const [error, setError] = useState('');
   useEffect(() => {
-    async function searchDonors() {
-      if (!searchTerm.trim()) {
-        setDonors(defaultDonors);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const res = await fetch(`http://localhost:5000/api/hospitals/donors/search?donorId=${encodeURIComponent(searchTerm)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            setDonors(data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (e) {
-        // use local filter if offline
-      }
-
-      const filtered = defaultDonors.filter(
-        (d) =>
-          d.donorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          d.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setDonors(filtered);
-      setLoading(false);
-    }
-
-    const timer = setTimeout(() => {
-      searchDonors();
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoading(true); setError('');
+      try { setDonors(await api('/hospitals/donors/search?donorId=' + encodeURIComponent(searchTerm), { signal: controller.signal })); }
+      catch (err) { if (!controller.signal.aborted) { setDonors([]); setError(err.message); } }
+      finally { if (!controller.signal.aborted) setLoading(false); }
     }, 250);
-
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [searchTerm]);
-
-  // click add record to open update records form
-  const handleAddRecord = (donorBLId) => {
-    navigate(`/hospital/update-record?donorId=${donorBLId}`);
-  };
+  const handleAddRecord = donorBLId => navigate('/hospital/update-record?donorId=' + encodeURIComponent(donorBLId));
 
   return (
     <div className="page-container" style={{ maxWidth: '1240px' }}>
+      {error && <p role="alert">{error}</p>}
       {/* Top Banner */}
       <div
         style={{
@@ -190,16 +113,16 @@ export default function HospitalDonorSearchPage() {
                     {donor.bloodType} POSITIVE
                   </span>
                   <span style={{ fontSize: '0.825rem', color: '#64748b' }}>
-                    {donor.distance || (donor.distanceKm ? `${donor.distanceKm} km away` : '2.4 km away')}
+                    {donor.distanceKm != null ? `${donor.distanceKm} km away` : 'Distance unavailable'}
                   </span>
                 </div>
 
                 <div style={{ fontSize: '0.85rem', color: '#475569' }}>
-                  <span>Donated: <strong>{donor.totalDonations || donor.donatedTimes || 8} times</strong></span>
+                  <span>Donated: <strong>{donor.totalDonations ?? 0} times</strong></span>
                   {' '}&bull;{' '}
-                  <span>Eligibility: <strong style={{ color: '#16a34a' }}>{donor.eligibility || donor.eligibilityStatus || 'Eligible Now'}</strong></span>
+                  <span>Eligibility: <strong style={{ color: '#16a34a' }}>{donor.eligibilityStatus || 'Clinical screening required'}</strong></span>
                   {' '}&bull;{' '}
-                  <span>Endorsements: <strong>{donor.badgesCount || donor.endorsements || 3} Hospital Stamps</strong></span>
+                  <span>Endorsements: <strong>{donor.badgesCount ?? 0} Hospital Stamps</strong></span>
                 </div>
               </div>
 

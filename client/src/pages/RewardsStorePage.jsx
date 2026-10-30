@@ -1,74 +1,31 @@
-import React, { useState } from 'react';
+import { api } from '../lib/api';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Gift, CheckCircle, Sparkles, X } from 'lucide-react';
-
+import { CheckCircle } from 'lucide-react';
 export default function RewardsStorePage() {
   const { user, setUser } = useAuth();
-
-  // default items in stock
-  const [vouchers, setVouchers] = useState([
-    {
-      id: 1,
-      title: 'Full Body Diagnostic Health Voucher',
-      provider: 'Clinica Lab Services',
-      cost: 300,
-      image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80'
-    },
-    {
-      id: 2,
-      title: 'Local Premium Coffee & Snack Bundle',
-      provider: 'The Roasted Bean Cafe',
-      cost: 100,
-      image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80'
-    },
-    {
-      id: 3,
-      title: 'Standard Movie Ticket Pass',
-      provider: 'Starlight Cine',
-      cost: 150,
-      image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80'
-    },
-    {
-      id: 4,
-      title: 'Smart Fitness Watch Straps',
-      provider: 'PulseFit Apparel',
-      cost: 200,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
-    }
-  ]);
-
+  const [vouchers, setVouchers] = useState([]);
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-
-  // redeem a voucher and deduct points
-  const handleRedeem = (item) => {
-    setErrorMsg('');
-    const currentCoins = user?.coins ?? 450;
-
-    if (currentCoins < item.cost) {
-      setErrorMsg(`Not enough coins! You have ${currentCoins} coins, but this voucher costs ${item.cost}.`);
-      return;
-    }
-
-    const newCoins = currentCoins - item.cost;
-    const code = 'VCH-' + Math.floor(100000 + Math.random() * 900000);
-
-    // update coins in auth context and storage
-    if (setUser) {
-      setUser((prev) => {
-        const updated = { ...prev, coins: newCoins };
-        localStorage.setItem('bloodlink_user', JSON.stringify(updated));
-        return updated;
-      });
-    }
-
-    setRedeemedCode({
-      name: item.title,
-      code: code
-    });
+  const requestKeys = useRef(new Map());
+  const busy = useRef(false);
+  useEffect(() => {
+    api('/rewards').then(items => setVouchers(items.map(item => ({ ...item, id: item._id, cost: item.costCoins }))))
+      .catch(err => setErrorMsg(err.message));
+  }, []);
+  const handleRedeem = async item => {
+    if (busy.current) return;
+    busy.current = true; setErrorMsg('');
+    if (!requestKeys.current.has(item.id)) requestKeys.current.set(item.id, crypto.randomUUID());
+    try {
+      const result = await api('/rewards/redeem', { method: 'POST', headers: { 'Idempotency-Key': requestKeys.current.get(item.id) }, body: { rewardItemId: item.id } });
+      requestKeys.current.delete(item.id);
+      setUser(prev => ({ ...prev, coins: result.newBalance }));
+      setRedeemedCode({ name: item.title, code: result.voucherCode });
+      setVouchers(prev => prev.map(v => v.id === item.id ? { ...v, stock: Math.max(0, v.stock - 1) } : v));
+    } catch (err) { setErrorMsg(err.message); } finally { busy.current = false; }
   };
-
-  const userCoins = user?.coins ?? 450;
+  const userCoins = user?.coins ?? 0;
 
   return (
     <div className="page-container" style={{ maxWidth: '1240px' }}>

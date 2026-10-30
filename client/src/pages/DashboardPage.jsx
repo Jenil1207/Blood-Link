@@ -1,99 +1,47 @@
+import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Heart, Gift, Award, MapPin, Activity, ShoppingBag, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
-
+import { Heart, Gift, Award, MapPin, Activity, ShoppingBag, CheckCircle2, ChevronRight } from 'lucide-react';
 export default function DashboardPage() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-
-  const [donorData, setDonorData] = useState(user || {
-    donorId: 'BL-2024-78542',
-    name: 'John Doe',
-    bloodType: 'O+',
-    coins: 450,
-    totalDonations: 8,
-    badgesCount: 3,
-    lastDonationDate: '2025-10-14'
-  });
-
+  const [donorData, setDonorData] = useState(user);
   const [sosAlerts, setSosAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acceptedId, setAcceptedId] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
-
-  // fetch donor info and sos alerts
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
+    const controller = new AbortController();
+    let closed = false, refreshTimer;
+    const refresh = async () => {
       try {
-        const donorId = user?.donorId || 'BL-2024-78542';
-        const donorRes = await fetch(`http://localhost:5000/api/donors/${donorId}`);
-        if (donorRes.ok) {
-          const dData = await donorRes.json();
-          setDonorData(dData);
-          if (setUser) setUser((prev) => ({ ...prev, ...dData }));
-        }
-
-        const sosRes = await fetch('http://localhost:5000/api/sos/nearby');
-        if (sosRes.ok) {
-          const alerts = await sosRes.json();
-          const activeOnly = alerts.filter(a => a.status !== 'Resolved');
-          setSosAlerts(activeOnly);
-        } else {
-          throw new Error('error');
-        }
-      } catch (err) {
-        // dummy data if server is offline
-        setSosAlerts([
-          {
-            _id: 'sos-1',
-            hospitalName: 'Saint Jude Trauma Center',
-            targetBloodType: 'O+',
-            distanceKm: 2.4,
-            urgencyLevel: 'Critical (24h)',
-            status: 'Active'
-          },
-          {
-            _id: 'sos-2',
-            hospitalName: 'City General Hospital',
-            targetBloodType: 'O- / O+',
-            distanceKm: 4.1,
-            urgencyLevel: 'Urgent',
-            status: 'Active'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
-
-  // accept sos button handler
+        const profile = await api('/donors/' + user.donorId, { signal: controller.signal });
+        if (closed) return;
+        setDonorData(profile); setUser(profile);
+        if (profile.location) setSosAlerts(await api('/sos/nearby', { signal: controller.signal }));
+      } catch (err) { if (!closed) setToastMessage(err.message); }
+      finally { if (!closed) setLoading(false); }
+    };
+    const onNotification = event => {
+      setToastMessage(event.detail.message);
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(refresh, 250);
+    };
+    refresh(); window.addEventListener('bloodlink-notification', onNotification);
+    return () => { closed = true; clearTimeout(refreshTimer); controller.abort(); window.removeEventListener('bloodlink-notification', onNotification); };
+  }, [user.donorId, setUser]);
   const handleAcceptSOS = async (alertId, hospitalName) => {
     try {
-      await fetch(`http://localhost:5000/api/sos/${alertId}/accept`, { method: 'PUT' });
-    } catch (e) {
-      // offline
-    }
-
-    setAcceptedId(alertId);
-    setToastMessage(`You accepted the request for ${hospitalName}! Hospital has been notified.`);
-    setTimeout(() => setToastMessage(''), 5000);
+      await api('/sos/' + alertId + '/accept', { method: 'PUT' });
+      setAcceptedId(alertId); setToastMessage('You volunteered for ' + hospitalName + '. Clinical screening is required before donation.');
+    } catch (err) { setToastMessage(err.message); }
   };
-
-  const formattedLastDate = donorData?.lastDonationDate
-    ? new Date(donorData.lastDonationDate).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      })
-    : 'October 14, 2025';
+  const formattedLastDate = donorData?.lastDonationDate ? new Date(donorData.lastDonationDate).toLocaleDateString() : 'No donations yet';
 
   return (
     <div className="page-container" style={{ maxWidth: '1240px' }}>
+      {loading && <p>Loading...</p>}
       {toastMessage && (
         <div
           style={{
@@ -181,7 +129,7 @@ export default function DashboardPage() {
           <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '8px' }}>
             Last Donation: {formattedLastDate} &bull; Medical Verification:{' '}
             <span style={{ color: '#38bdf8', fontWeight: 600 }}>
-              {donorData?.screeningStatus === 'Passed' ? 'Verified' : 'Verified'}
+              {donorData?.screeningStatus || 'Pending'}
             </span>
           </div>
         </div>
@@ -208,7 +156,7 @@ export default function DashboardPage() {
               letterSpacing: '-0.5px'
             }}
           >
-            {donorData?.eligibility?.statusText || 'Eligible Now'}
+            {donorData?.eligibility?.statusText || 'Clinical screening required'}
           </div>
         </div>
       </div>
@@ -229,7 +177,7 @@ export default function DashboardPage() {
               TOTAL DONATIONS
             </div>
             <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', margin: '6px 0 2px' }}>
-              {donorData?.totalDonations || 8} Times
+              {donorData?.totalDonations ?? 0} Times
             </div>
             <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Whole Blood & Plasma</div>
           </div>
@@ -245,7 +193,7 @@ export default function DashboardPage() {
               REWARD COINS
             </div>
             <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', margin: '6px 0 2px' }}>
-              {donorData?.coins !== undefined ? donorData.coins : 450} Points
+              {donorData?.coins !== undefined ? donorData.coins : 0} Points
             </div>
             <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Bronze Tier Status</div>
           </div>
@@ -261,9 +209,9 @@ export default function DashboardPage() {
               HOSPITAL ENDORSEMENT
             </div>
             <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', margin: '6px 0 2px' }}>
-              {donorData?.badgesCount || 3} Badges
+              {donorData?.badgesCount ?? 0} Badges
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Verifications from NGOs</div>
+            <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Clinical endorsements from hospitals</div>
           </div>
           <div style={{ color: '#dc2626', padding: '8px', backgroundColor: '#fee2e2', borderRadius: '50%' }}>
             <Award size={22} />

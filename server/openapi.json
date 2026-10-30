@@ -1,0 +1,3441 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BloodLink MERN API",
+    "version": "1.0.0",
+    "description": "College fullstack lab backend. JSON bodies use real numbers/booleans. Authentication is Bearer JWT. Medical data remains consent-restricted."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Database readiness",
+        "description": "200 when MongoDB is connected; otherwise 503.",
+        "tags": [
+          "health"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "summary": "Process liveness",
+        "description": "Does not require a database connection.",
+        "tags": [
+          "health"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "summary": "OpenAPI JSON",
+        "description": "Import this document into Postman or an OpenAPI viewer.",
+        "tags": [
+          "docs"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/register-donor": {
+      "post": {
+        "summary": "Register donor",
+        "description": "Public. Medical history and known abnormalities are self-reported. Returns user, token, role. Starts at zero coins and Pending screening.",
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DonorRegistration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/register-hospital-ngo": {
+      "post": {
+        "summary": "Register institution",
+        "description": "Public. Requires coordinates. Admin verification required before login. No token issued.",
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationRegistration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Sign in",
+        "description": "accountType is donor, hospital-ngo or admin. Returns token, data, userType, role.",
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Current account",
+        "description": "All authenticated roles. Returns data, userType and role.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Revoke all sessions",
+        "description": "Invalidates all existing access tokens for this account.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "put": {
+        "summary": "Change password",
+        "description": "Invalidates all sessions. Sign in again after success.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/donors/{identifier}": {
+      "get": {
+        "summary": "Read donor profile",
+        "description": "Donor self, verified hospital or NGO. identifier is MongoDB _id or BL-ID. Medical fields only for self or a hospital with donor consent. Admin has no medical-profile access.",
+        "tags": [
+          "donors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/donors/{id}": {
+      "put": {
+        "summary": "Update own donor profile",
+        "description": "Donor only. Does not accept clinical results, coin balances or donation counters. Changed disclosures reset screening to Pending.",
+        "tags": [
+          "donors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DonorUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/hospitals/donors/search": {
+      "get": {
+        "summary": "Nearby donor search",
+        "description": "Verified hospitals/NGOs. Exact locations and contact data are omitted. Escape blood type plus signs through URLSearchParams. Results sorted by proximity; limit is a cap.",
+        "tags": [
+          "hospitals"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "donorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Literal name or BL-ID search"
+          },
+          {
+            "name": "bloodType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/hospitals/{id}": {
+      "get": {
+        "summary": "Own institution and stock",
+        "description": "Verified institution, own account only.",
+        "tags": [
+          "hospitals"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/hospitals/{id}/inventory": {
+      "put": {
+        "summary": "Set blood inventory counts",
+        "description": "Verified hospital, own account only. Partial blood-type updates. Nonnegative integers.",
+        "tags": [
+          "hospitals"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Inventory"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/camps": {
+      "get": {
+        "summary": "Find upcoming camps",
+        "description": "Authenticated users. Active organizers only. If no coordinates exist, returns upcoming camps with null distance. Booking roster omitted except for organizer.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "bloodType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create camp",
+        "description": "Verified hospital/NGO. Organizer identity is derived from token. Start date must be future, end date after start. UTC ISO dates with timezone.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Camp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/camps/{id}": {
+      "get": {
+        "summary": "Camp details",
+        "description": "Roster visible only to organizing institution.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/camps/{id}/status": {
+      "patch": {
+        "summary": "Close own camp",
+        "description": "Organizing institution only. Complete after endDate or cancel at any time while Scheduled.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampStatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/camps/{id}/register": {
+      "post": {
+        "summary": "Book camp slot",
+        "description": "Donor self. Requires scheduling eligibility; Pending screening may book. Capacity is total across the camp, and one slot per donor.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Booking"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancel own booking",
+        "description": "Donor self. Camp must not have started.",
+        "tags": [
+          "camps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/records/donor/{donorBLId}": {
+      "get": {
+        "summary": "Donation and attendance history",
+        "description": "Donor self. Hospitals see own records and consented history; NGOs see only own attendance records, without clinical values.",
+        "tags": [
+          "records"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "donorBLId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/records": {
+      "post": {
+        "summary": "Log verified visit and award coins",
+        "description": "Verified hospitals: donation, screening or endorsement. NGOs: attendance only. Server controls facility identity, dates and points. Attendance requires owned camp, registered donor and started camp. One endorsement per hospital/donor. Whole-blood donation adds one inventory unit. Clinical donation requires quantity, hemoglobin and bloodPressure. Same scheduling interval used for all donation types as a lab policy.",
+        "tags": [
+          "records"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{8,128}$"
+            },
+            "description": "Reuse this key for retries of the same operation. A different payload under the same key returns 409."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Record"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idempotent replay; original result returned without repeating side effects."
+          },
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/nearby": {
+      "get": {
+        "summary": "Nearby live SOS alerts",
+        "description": "Authenticated. Profile coordinates or lat/lng required. Donors default to their exact blood type. Includes Active and In Transit alerts until expiry; responders are private to creator.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "bloodType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/mine": {
+      "get": {
+        "summary": "Own SOS history",
+        "description": "Verified hospital only, including resolved/expired alerts.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos": {
+      "post": {
+        "summary": "Publish SOS and notify donors",
+        "description": "Verified hospital only. Location/identity come from hospital account. Persists notifications for available matching-blood-type donors inside radius whose scheduling window permits volunteering. No medical clearance is inferred.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SOS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/{id}/accept": {
+      "put": {
+        "summary": "Volunteer for SOS",
+        "description": "Available donor with matching blood type, location inside alert radius and scheduling eligibility. Does not award coins or create a donation.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/{id}/resolve": {
+      "put": {
+        "summary": "Resolve own SOS",
+        "description": "Creating hospital only. Marks resolved without transferring stock.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/{id}/fulfill": {
+      "put": {
+        "summary": "Fulfill another hospital SOS",
+        "description": "Verified source hospital only. Atomically moves full required stock to requesting hospital and resolves alert. Duplicate or insufficient-stock requests return 409.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/sos/stock-matches/{hospitalId}": {
+      "get": {
+        "summary": "Find nearby hospital stock",
+        "description": "Own requesting hospital ID. Verified active partner hospitals only.",
+        "tags": [
+          "sos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "hospitalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "bloodType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "units",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/rewards": {
+      "get": {
+        "summary": "Reward catalog",
+        "description": "Authenticated roles. Active items, including stock counts.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create reward",
+        "description": "Admin only.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reward"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/rewards/{id}": {
+      "put": {
+        "summary": "Replace reward details",
+        "description": "Admin only. Use isActive=false to retire a reward.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reward"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/rewards/redeem": {
+      "post": {
+        "summary": "Redeem Blood Coins",
+        "description": "Donor self. Atomic balance deduction, stock decrement and durable voucher creation. Returns newBalance, voucherCode, redemptionId, replayed.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{8,128}$"
+            },
+            "description": "Reuse this key for retries of the same operation. A different payload under the same key returns 409."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedemptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idempotent replay; original result returned without repeating side effects."
+          },
+          "201": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/rewards/redemptions": {
+      "get": {
+        "summary": "Own issued vouchers",
+        "description": "Donor self. Returns persisted voucher codes and status.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/rewards/redemptions/{id}/use": {
+      "post": {
+        "summary": "Mark voucher used",
+        "description": "Admin only, single use. Provider fulfillment is manual in this college project.",
+        "tags": [
+          "rewards"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "summary": "Notification inbox",
+        "description": "Current account only, newest first.",
+        "tags": [
+          "notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          },
+          {
+            "name": "unread",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/notifications/stream": {
+      "get": {
+        "summary": "Real-time notification stream",
+        "description": "Authenticated fetch streaming using Authorization header. Up to five streams per account. Heartbeats every 15 seconds. Reconnect with Last-Event-ID; latest 100 are replayed. Use history endpoint on sync-required. Single API process delivery.",
+        "tags": [
+          "notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live SSE stream. Events: connected, notification, sync-required.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "put": {
+        "summary": "Acknowledge notification",
+        "description": "Recipient only.",
+        "tags": [
+          "notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/admin/organizations": {
+      "get": {
+        "summary": "Institution moderation queue",
+        "description": "Admin only.",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          },
+          {
+            "name": "pending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/admin/verify/{id}": {
+      "put": {
+        "summary": "Approve institution",
+        "description": "Admin only. Clears scam flag and revokes old tokens; cannot enable disabled accounts.",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/admin/report-scam/{id}": {
+      "put": {
+        "summary": "Suspend institution",
+        "description": "Admin only. Revokes sessions, cancels camps and closes active SOS.",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScamReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/admin/org/{id}": {
+      "delete": {
+        "summary": "Disable institution",
+        "description": "Admin only. Soft deletion preserves records and audit trail.",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    },
+    "/admin/audit": {
+      "get": {
+        "summary": "Moderation audit log",
+        "description": "Admin only.",
+        "tags": [
+          "admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB _id of the last row on the previous page; history lists only."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. See server/README.md for returned resource fields.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON, fields, coordinates, ID, or missing idempotency key"
+          },
+          "401": {
+            "description": "Missing, expired, revoked or invalid bearer token"
+          },
+          "403": {
+            "description": "Role, ownership, verification or consent restriction"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Conflict, duplicate, invalid state, insufficient balance/stock or scheduling restriction"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "MongoDB unavailable or replica set required"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "DonorRegistration": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "bloodType": {
+            "type": "string",
+            "enum": [
+              "A+",
+              "A-",
+              "B+",
+              "B-",
+              "AB+",
+              "AB-",
+              "O+",
+              "O-"
+            ]
+          },
+          "dob": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "healthProblems": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "medicalHistory": {
+            "type": "object",
+            "properties": {
+              "conditions": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "medications": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "allergies": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "surgeries": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "notes": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false
+          },
+          "knownAbnormalities": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "shareMedicalHistory": {
+            "type": "boolean"
+          },
+          "availableForSOS": {
+            "type": "boolean"
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        },
+        "required": [
+          "name",
+          "bloodType",
+          "dob",
+          "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "DonorUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "bloodType": {
+            "type": "string",
+            "enum": [
+              "A+",
+              "A-",
+              "B+",
+              "B-",
+              "AB+",
+              "AB-",
+              "O+",
+              "O-"
+            ]
+          },
+          "dob": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "healthProblems": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "medicalHistory": {
+            "type": "object",
+            "properties": {
+              "conditions": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "medications": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "allergies": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "surgeries": {
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "notes": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false
+          },
+          "knownAbnormalities": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "shareMedicalHistory": {
+            "type": "boolean"
+          },
+          "availableForSOS": {
+            "type": "boolean"
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrganizationRegistration": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "hospital",
+              "ngo"
+            ]
+          },
+          "registrationNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "licenseInfo": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "role",
+          "registrationNumber",
+          "address",
+          "latitude",
+          "longitude"
+        ],
+        "additionalProperties": false
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "accountType": {
+            "default": "donor",
+            "type": "string",
+            "enum": [
+              "donor",
+              "hospital-ngo",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "Camp": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "timeString": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "demands": {
+            "default": [
+              "All"
+            ],
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "A+",
+                "A-",
+                "B+",
+                "B-",
+                "AB+",
+                "AB-",
+                "O+",
+                "O-",
+                "All",
+                "All Types Accepted"
+              ]
+            }
+          },
+          "capacity": {
+            "default": 100,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "slots": {
+            "default": [
+              "09:00-10:00",
+              "10:00-11:00",
+              "11:00-12:00"
+            ],
+            "minItems": 1,
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "organizerId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "organizerName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "organizerRole": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title",
+          "date",
+          "endDate",
+          "address",
+          "latitude",
+          "longitude"
+        ],
+        "additionalProperties": false
+      },
+      "Record": {
+        "type": "object",
+        "properties": {
+          "donorBLId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "campId": {
+            "type": "string",
+            "pattern": "^[a-f\\d]{24}$"
+          },
+          "isDonation": {
+            "default": false,
+            "type": "boolean"
+          },
+          "isCampAttendance": {
+            "default": false,
+            "type": "boolean"
+          },
+          "isEndorsement": {
+            "default": false,
+            "type": "boolean"
+          },
+          "screeningStatus": {
+            "type": "string",
+            "enum": [
+              "Passed",
+              "Deferred"
+            ]
+          },
+          "bloodTypeCollected": {
+            "type": "string",
+            "enum": [
+              "A+",
+              "A-",
+              "B+",
+              "B-",
+              "AB+",
+              "AB-",
+              "O+",
+              "O-"
+            ]
+          },
+          "quantityMl": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "donationType": {
+            "default": "Whole Blood",
+            "type": "string",
+            "enum": [
+              "Whole Blood",
+              "Plasma",
+              "Platelets",
+              "Event Attendance Only"
+            ]
+          },
+          "hemoglobin": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 30
+          },
+          "bloodPressure": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "attendingStaff": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "collectionCenter": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "facilityId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "facilityName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "facilityType": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "dateString": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "donorBLId",
+          "screeningStatus",
+          "attendingStaff"
+        ],
+        "additionalProperties": false
+      },
+      "SOS": {
+        "type": "object",
+        "properties": {
+          "targetBloodType": {
+            "type": "string",
+            "enum": [
+              "A+",
+              "A-",
+              "B+",
+              "B-",
+              "AB+",
+              "AB-",
+              "O+",
+              "O-"
+            ]
+          },
+          "requiredQuantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "urgencyLevel": {
+            "default": "Critical (24h)",
+            "type": "string",
+            "enum": [
+              "Critical (24h)",
+              "Urgent",
+              "Standard"
+            ]
+          },
+          "radiusKm": {
+            "default": 50,
+            "type": "number",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "expiresInHours": {
+            "default": 24,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 72
+          },
+          "hospitalId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "hospitalName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        },
+        "required": [
+          "targetBloodType",
+          "requiredQuantity"
+        ],
+        "additionalProperties": false
+      },
+      "Reward": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "costCoins": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "image": {
+            "default": "",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "format": "uri"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "isActive": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "provider",
+          "costCoins",
+          "stock"
+        ],
+        "additionalProperties": false
+      },
+      "Inventory": {
+        "type": "object",
+        "properties": {
+          "inventory": {
+            "type": "object",
+            "properties": {
+              "A+": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "A-": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "B+": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "B-": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "AB+": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "AB-": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "O+": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              },
+              "O-": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "inventory"
+        ],
+        "additionalProperties": false
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "timeSlot": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "timeSlot"
+        ],
+        "additionalProperties": false
+      },
+      "PasswordChange": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "additionalProperties": false
+      },
+      "RedemptionRequest": {
+        "type": "object",
+        "properties": {
+          "rewardItemId": {
+            "type": "string",
+            "pattern": "^[a-f\\d]{24}$"
+          }
+        },
+        "required": [
+          "rewardItemId"
+        ],
+        "additionalProperties": false
+      },
+      "CampStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "Cancelled",
+              "Completed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "ScamReport": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
