@@ -115,6 +115,18 @@ test('medical edits reset clinical screening without modifying rewards', async (
   const res = await api('put', '/donors/' + other._id, otherToken).send({ medicalHistory: { notes: 'New disclosure' }, knownAbnormalities: ['For review'] }).expect(200);
   assert.equal(res.body.screeningStatus, 'Pending'); assert.equal(res.body.coins, 0);
 });
+test('saving only donor location preserves clinical screening and validates coordinate pairs', async () => {
+  const account = await makeDonor({ screeningStatus: 'Passed', coins: 20 });
+  const auth = token(account, 'donor');
+  const saved = await api('put', '/donors/' + account._id, auth).send({ latitude: 0, longitude: 0 }).expect(200);
+  assert.deepEqual(saved.body.location.coordinates, [0, 0]);
+  assert.equal(saved.body.screeningStatus, 'Passed');
+  assert.equal(saved.body.coins, 20);
+  const reloaded = await api('get', '/donors/' + account.donorId, auth).expect(200);
+  assert.deepEqual(reloaded.body.location.coordinates, [0, 0]);
+  await api('put', '/donors/' + account._id, auth).send({ latitude: 0 }).expect(400);
+  await api('put', '/donors/' + account._id, auth).send({ latitude: 0, longitude: 181 }).expect(400);
+});
 test('organization registration requires real location and admin verification', async () => {
   const data = { name: 'Pending Hospital', email: 'pending@example.com', password, role: 'hospital', registrationNumber: key(), address: 'Mumbai' };
   await api('post', '/auth/register-hospital-ngo').send(data).expect(400);

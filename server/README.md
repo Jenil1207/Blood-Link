@@ -35,6 +35,16 @@ Seeding is optional. It inserts missing demo accounts, a future camp and reward 
 
 API: `http://localhost:5000/api`. Readiness: `GET /api/health`. OpenAPI reference: `GET /api/docs`, or import [openapi.json](openapi.json) directly into Postman.
 
+### Current-location detection
+
+Donor and institution registration, My Profile, and Find Camps include a **Use my location** button. Nothing requests device location until that button is clicked. Allow the browser's location request to fill the coordinates; manual entry remains available if permission is denied, location services are unavailable, or detection times out. Device accuracy is displayed when supplied by the browser.
+
+Registration saves the detected coordinates only when the account is submitted. My Profile saves them only after **Save profile**; saved donor coordinates are used for nearby camps and matching SOS alerts. Institution registration should use the institution's location, so the current-location button is appropriate only when the person registering is actually there.
+
+On Find Camps, detection temporarily centres the map and filters camps from the detected position. It does not update the stored profile. **Use saved location** returns to the profile's coordinates. This is a one-time position lookup, not continuous tracking. Deployed pages require HTTPS; localhost works for development. There is no external geocoding API or API key involved.
+
+Location tests use simulated device responses; they do not collect the developer's real location. Run them with `npm --prefix client test`, or run both client and backend tests with `npm test` from the repository root.
+
 In another terminal:
 
 ```sh

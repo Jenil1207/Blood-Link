@@ -8,7 +8,7 @@
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev -- --host 127.0.0.1 --port 5173 --strictPort",
     "check:local": "node scripts/check-local.js",
-    "test": "npm --prefix server test",
+    "test": "npm --prefix client test && npm --prefix server test",
     "build": "npm --prefix client run build"
   },
   "engines": {

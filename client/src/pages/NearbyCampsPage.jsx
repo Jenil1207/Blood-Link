@@ -1,9 +1,17 @@
 import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Clock, CheckCircle2, X } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Clock, CheckCircle2, LocateFixed, X } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { useCurrentLocation } from '../hooks/useCurrentLocation';
+import { addLocationToQuery, coordinatesFromPoint } from '../lib/geolocation';
+
+function SearchMapView({ latitude, longitude, zoom }) {
+  const map = useMap();
+  useEffect(() => { map.setView([latitude, longitude], zoom); }, [map, latitude, longitude, zoom]);
+  return null;
+}
 
 // custom markers for the map
 const createCustomIcon = (type, label) => {
@@ -68,15 +76,32 @@ export default function NearbyCampsPage() {
   const [registeredCampIds, setRegisteredCampIds] = useState([]);
   const [registrationSuccessMsg, setRegistrationSuccessMsg] = useState('');
   const [error, setError] = useState('');
+  const [detectedLocation, setDetectedLocation] = useState(null);
+  const { requestLocation, loading: locating, error: locationError, clearError } = useCurrentLocation();
+  const savedLocation = coordinatesFromPoint(user.location);
+  const origin = detectedLocation || savedLocation;
+  const latitude = origin?.latitude;
+  const longitude = origin?.longitude;
+  const mapCenter = origin ? [latitude, longitude] : camps[0]?.location
+    ? [camps[0].location.coordinates[1], camps[0].location.coordinates[0]] : [20.5937, 78.9629];
+  const mapZoom = origin || camps.length ? 13 : 4;
+  const detectLocation = async () => {
+    const location = await requestLocation();
+    if (location) {
+      if (location.latitude !== latitude || location.longitude !== longitude) setLoading(true);
+      setDetectedLocation(location);
+    }
+  };
   useEffect(() => {
     const controller = new AbortController();
-    const query = new URLSearchParams({ radiusKm: distanceFilter, bloodType: bloodFilter.split(' ')[0] });
+    const query = addLocationToQuery(new URLSearchParams({ radiusKm: distanceFilter, bloodType: bloodFilter.split(' ')[0] }),
+      latitude !== undefined && longitude !== undefined ? { latitude, longitude } : null);
     api('/camps?' + query, { signal: controller.signal }).then(data => {
       setError(''); setCamps(data); setRegisteredCampIds(data.filter(c => c.myRegistration).map(c => c._id));
     }).catch(err => { if (!controller.signal.aborted) { setCamps([]); setError(err.message); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [distanceFilter, bloodFilter]);
+  }, [distanceFilter, bloodFilter, latitude, longitude]);
   const handleRegisterSlot = async e => {
     e.preventDefault();
     if (!selectedCamp) return;
@@ -98,6 +123,24 @@ export default function NearbyCampsPage() {
         <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
           Find local mobile blood donation events verified by NGOs.
         </p>
+        <div className="location-fields">
+          <button type="button" className="btn-outline location-detect" onClick={detectLocation} disabled={locating}>
+            <LocateFixed size={17} aria-hidden="true" /> {locating ? 'Finding your location...' : 'Use my location'}
+          </button>
+          {detectedLocation && savedLocation && <button type="button" className="btn-outline" style={{ marginLeft: '0.75rem' }} disabled={locating}
+            onClick={() => {
+              if (savedLocation.latitude !== latitude || savedLocation.longitude !== longitude) setLoading(true);
+              setDetectedLocation(null); clearError();
+            }}>Use saved location</button>}
+          <p className="location-hint">{detectedLocation
+            ? 'Using your detected location for this search. Your saved profile location has not changed.'
+            : savedLocation ? 'Using your saved location. You can search from your current location instead.'
+              : 'Use your location to find nearby camps and see distances. You can also save coordinates in My Profile.'}</p>
+          {locating && <p role="status" className="location-feedback">Waiting for your browser or device to provide a location...</p>}
+          {locationError && <p role="alert" className="location-error">{locationError}</p>}
+          {detectedLocation && !locating && <p role="status" className="location-success">Current search location: {latitude.toFixed(5)}, {longitude.toFixed(5)}
+            {detectedLocation.accuracy !== null ? ` · device accuracy approximately ${Math.max(1, Math.round(detectedLocation.accuracy))} metres` : ''}.</p>}
+        </div>
 
         {/* Filters Bar matching PDF */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '1.25rem', flexWrap: 'wrap' }}>
@@ -120,7 +163,7 @@ export default function NearbyCampsPage() {
               <option value="5">Within 5 km</option>
               <option value="10">Within 10 km</option>
               <option value="25">Within 25 km</option>
-              <option value="50">All Distances</option>
+              <option value="50">Within 50 km</option>
             </select>
           </div>
 
@@ -199,6 +242,7 @@ export default function NearbyCampsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: '1.75rem', alignItems: 'start' }}>
         {/* Left Column: Camps Cards List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {!loading && !error && camps.length === 0 && <p className="card">No upcoming camps found{origin ? ' within this area. Try a larger distance filter.' : '.'}</p>}
           {camps.map((camp) => {
             const isRegistered = registeredCampIds.includes(camp._id);
 
@@ -250,7 +294,7 @@ export default function NearbyCampsPage() {
                   <span>{camp.timeString || new Date(camp.date).toLocaleString()}</span>
                   <span>&bull;</span>
                   <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                    {camp.distanceKm != null ? `${camp.distanceKm} km away` : 'Set your profile location'}
+                    {camp.distanceKm != null ? `${camp.distanceKm} km away` : 'Set a search location for distance'}
                   </span>
                 </div>
 
@@ -305,15 +349,19 @@ export default function NearbyCampsPage() {
         >
           {/* Leaflet Map */}
           <MapContainer
-            center={user.location ? [user.location.coordinates[1], user.location.coordinates[0]] : [19.0760, 72.8777]}
-            zoom={13}
+            center={mapCenter}
+            zoom={mapZoom}
             style={{ width: '100%', height: '100%' }}
             scrollWheelZoom={false}
           >
+            <SearchMapView latitude={mapCenter[0]} longitude={mapCenter[1]} zoom={mapZoom} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            {origin && <CircleMarker center={[latitude, longitude]} radius={8} pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }}>
+              <Popup>{detectedLocation ? 'Your current search location' : 'Your saved location'}</Popup>
+            </CircleMarker>}
 
             {camps.map(camp => <Marker key={camp._id} position={[camp.location.coordinates[1], camp.location.coordinates[0]]} icon={createCustomIcon('blood-drive', 'Blood Drive')}><Popup><strong>{camp.title}</strong><br />{camp.organizerName}<br />{new Date(camp.date).toLocaleString()}</Popup></Marker>)}
           </MapContainer>
@@ -346,14 +394,10 @@ export default function NearbyCampsPage() {
               LEGEND
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '0.78rem', fontWeight: 600 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                <span>COMMUNITY CLINIC</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#3b82f6' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }} />
-                <span>RED CROSS DONATION CENTER</span>
-              </div>
+              {origin && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563eb' }} />
+                <span>YOUR SEARCH LOCATION</span>
+              </div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#e63946' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#e63946' }} />
                 <span>MOBILE BLOOD DRIVE</span>
