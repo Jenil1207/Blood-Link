@@ -2,6 +2,7 @@ import { api } from '../lib/api';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LocationFields from '../components/LocationFields';
 import { Eye, EyeOff, Heart, Shield, Building2, User, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [shareMedicalHistory, setShareMedicalHistory] = useState(false);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [locating, setLocating] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [orgRole, setOrgRole] = useState('hospital');
   const [orgRegNo, setOrgRegNo] = useState('');
@@ -39,7 +41,9 @@ export default function LoginPage() {
     } catch (err) { setErrorMsg(err.message); } finally { setLoading(false); }
   };
   const handleRegister = async e => {
-    e.preventDefault(); setErrorMsg(''); setSuccessMsg(''); setLoading(true);
+    e.preventDefault();
+    if (locating) return;
+    setErrorMsg(''); setSuccessMsg(''); setLoading(true);
     try {
       const coordinates = latitude !== '' || longitude !== '' ? { latitude: Number(latitude), longitude: Number(longitude) } : {};
       if ((latitude === '') !== (longitude === '')) throw new Error('Enter both latitude and longitude');
@@ -593,11 +597,12 @@ export default function LoginPage() {
                 </div>
                 <label style={{ display: 'block', marginBottom: '1rem' }}><input type="checkbox" checked={shareMedicalHistory} onChange={e => setShareMedicalHistory(e.target.checked)} /> Allow verified hospitals to review my medical history for donation screening.</label>
               </>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group"><label className="form-label" htmlFor="latitude">LATITUDE</label><input id="latitude" type="number" step="any" min="-90" max="90" className="form-input" value={latitude} onChange={e => setLatitude(e.target.value)} required={accountType !== 'donor'} /></div>
-                <div className="form-group"><label className="form-label" htmlFor="longitude">LONGITUDE</label><input id="longitude" type="number" step="any" min="-180" max="180" className="form-input" value={longitude} onChange={e => setLongitude(e.target.value)} required={accountType !== 'donor'} /></div>
-              </div>
-              <p style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Location is needed for nearby camps and emergency alerts. Donors can add it later in My Profile.</p>
+              <LocationFields key={accountType} value={{ latitude, longitude }}
+                onChange={location => { setLatitude(location.latitude); setLongitude(location.longitude); }}
+                required={accountType !== 'donor'} disabled={loading} onPendingChange={setLocating}
+                hint={accountType === 'donor'
+                  ? 'Your location is saved when you create your account and used for nearby camps and SOS alerts. You can also enter it manually or add it later in My Profile.'
+                  : 'Use your current location only if you are at the institution. Otherwise enter its coordinates manually. The institution location is saved on registration.'} />
               {/* Common Credentials */}
               <div className="form-group">
                 <label className="form-label">EMAIL ADDRESS</label>
@@ -639,7 +644,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={loading}
+                disabled={loading || locating}
                 style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', borderRadius: '8px' }}
               >
                 {loading

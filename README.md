@@ -54,6 +54,8 @@ Start with **[server/README.md](server/README.md)** for environment setup, Mongo
 
 The React client now attaches authentication tokens and uses saved API results for its main donor, institution, booking, record and reward workflows. Camp creation/management and reward administration are available through the documented API for further frontend work.
 
+**Current location:** registration, donor profiles, and camp discovery now have a **Use my location** button. Browser permission is requested on click. Profile coordinates are saved on form submission, while camp-page detection applies only to that search. Manual coordinate entry and permission-error guidance are included. Use HTTPS when deploying this feature; localhost is supported during development.
+
 ```sh
 npm --prefix server ci
 # Copy server/.env.example to server/.env and fill in your own database URI and JWT secret.

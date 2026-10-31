@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import LocationFields from '../components/LocationFields';
 export default function DonorProfilePage() {
   const { user, setUser } = useAuth();
   const [profile, setProfile] = useState(user);
   const [form, setForm] = useState(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [locating, setLocating] = useState(false);
   const populate = data => {
     setProfile(data);
     setForm({
@@ -20,7 +22,9 @@ export default function DonorProfilePage() {
   };
   useEffect(() => { api('/donors/' + user.donorId).then(populate).catch(err => setMessage(err.message)); }, [user.donorId]);
   const save = async e => {
-    e.preventDefault(); setBusy(true); setMessage('');
+    e.preventDefault();
+    if (locating) return;
+    setBusy(true); setMessage('');
     try {
       const { conditions, medications, allergies, surgeries, notes, latitude, longitude, knownAbnormalities, ...fields } = form;
       if ((latitude === '') !== (longitude === '')) throw new Error('Enter both latitude and longitude');
@@ -53,13 +57,14 @@ export default function DonorProfilePage() {
         <label className="form-label" htmlFor={field}>{field.replace(/([A-Z])/g, ' $1').toUpperCase()}{['conditions', 'medications', 'allergies', 'surgeries', 'knownAbnormalities'].includes(field) ? ' (comma separated)' : ''}</label>
         <input id={field} className="form-input" value={form[field]} required={field === 'name'} onChange={e => change(field, e.target.value)} />
       </div>)}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-        {['latitude', 'longitude'].map(field => <div className="form-group" key={field}><label className="form-label" htmlFor={field}>{field.toUpperCase()}</label><input id={field} className="form-input" type="number" step="any" min={field === 'latitude' ? -90 : -180} max={field === 'latitude' ? 90 : 180} value={form[field]} onChange={e => change(field, e.target.value)} /></div>)}
-      </div>
+      <LocationFields value={{ latitude: form.latitude, longitude: form.longitude }}
+        onChange={location => setForm(prev => ({ ...prev, ...location }))}
+        disabled={busy} onPendingChange={setLocating}
+        hint="Use your current location or enter coordinates manually. Click Save profile to store it for nearby camps and matching SOS alerts." />
       <label style={{ display: 'block', margin: '1rem 0' }}><input type="checkbox" checked={form.shareMedicalHistory} onChange={e => change('shareMedicalHistory', e.target.checked)} /> Allow verified hospitals to review my medical history and donation records.</label>
       <label style={{ display: 'block', margin: '1rem 0' }}><input type="checkbox" checked={form.availableForSOS} onChange={e => change('availableForSOS', e.target.checked)} /> Receive nearby SOS requests.</label>
       <p>Changes to medical disclosures require fresh clinical screening. Scheduling eligibility does not replace a clinician's assessment.</p>
-      <button className="btn-primary" disabled={busy}>{busy ? 'Saving...' : 'Save profile'}</button>
+      <button className="btn-primary" disabled={busy || locating}>{busy ? 'Saving...' : locating ? 'Finding location...' : 'Save profile'}</button>
     </form>}
   </div>;
 }
