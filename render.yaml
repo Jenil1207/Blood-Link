@@ -1,0 +1,42 @@
+# React and Express remain separate services; MongoDB is hosted in Atlas.
+# Supply the three sync:false values when creating this Blueprint.
+services:
+  - type: web
+    name: bloodlink-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: CLIENT_ORIGINS
+        sync: false
+  - type: web
+    name: bloodlink-web
+    runtime: static
+    branch: main
+    rootDir: client
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

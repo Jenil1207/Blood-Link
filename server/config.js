@@ -10,12 +10,14 @@ function getConfig() {
   };
   const origins = (process.env.CLIENT_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map(v => v.trim()).filter(Boolean);
   if (origins.includes('*')) throw new Error('CLIENT_ORIGINS must list explicit frontend origins');
+  const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 5) throw new Error('TRUST_PROXY_HOPS must be an integer from 0 to 5');
   return {
     port: positive('PORT', 5000, 65535),
     mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/bloodlink?replicaSet=rs0',
     jwtSecret, tokenHours: positive('TOKEN_HOURS', 8, 24),
     donationIntervalDays: positive('DONATION_INTERVAL_DAYS', 90, 365),
-    origins, production: process.env.NODE_ENV === 'production'
+    origins, trustProxyHops, production: process.env.NODE_ENV === 'production'
   };
 }
 module.exports = { getConfig };

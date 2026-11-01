@@ -8,6 +8,8 @@ const { errorHandler, HttpError } = require('./lib/http');
 function createApp(config = getConfig()) {
   const app = express();
   app.locals.config = config;
+  // Trust only the configured number of hosting proxies, never every forwarded IP.
+  app.set('trust proxy', config.trustProxyHops ?? 0);
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(cors({

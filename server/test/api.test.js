@@ -60,6 +60,16 @@ test('health readiness, CORS and malformed requests', async () => {
   await api('get', '/missing').expect(404);
   await api('post', '/auth/login').set('Content-Type', 'application/json').send('{broken').expect(400);
 });
+test('hosting proxy rate limits separate visitors and ignore forged earlier IPs', async () => {
+  assert.equal(app.get('trust proxy'), 0);
+  const proxiedApp = createApp({ ...config, trustProxyHops: 1 });
+  const remaining = response => Number(/remaining=(\d+)/.exec(response.headers.ratelimit)[1]);
+  const first = await request(proxiedApp).get('/api/missing').set('X-Forwarded-For', '192.0.2.1, 203.0.113.10').expect(404);
+  const sameVisitor = await request(proxiedApp).get('/api/missing').set('X-Forwarded-For', '192.0.2.99, 203.0.113.10').expect(404);
+  const otherVisitor = await request(proxiedApp).get('/api/missing').set('X-Forwarded-For', '192.0.2.1, 203.0.113.11').expect(404);
+  assert.equal(remaining(sameVisitor), remaining(first) - 1);
+  assert.equal(remaining(otherVisitor), remaining(first));
+});
 test('registration stores medical disclosure, hashes passwords, and has honest defaults', async () => {
   const res = await api('post', '/auth/register-donor').send({
     name: 'New Donor', email: '  NEW@example.com ', password, bloodType: 'AB-', dob: '2002-02-02',

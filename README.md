@@ -38,6 +38,9 @@ BloodLink/
 
 ## Backend setup and API documentation
 
+For internet hosting with Render and MongoDB Atlas, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+The root `render.yaml` provides the React and Express service definitions without committing secrets.
+
 After the local environment has been configured, start MongoDB, Express and React together from this folder:
 
 ```sh

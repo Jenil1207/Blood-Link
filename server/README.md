@@ -2,6 +2,8 @@
 
 Express + Node.js REST API with MongoDB/Mongoose. The React client stays in `../client`. No SQL database, Firebase, Redis, Python service, or paid notification service is required.
 
+Internet hosting with Render and MongoDB Atlas is documented in [../DEPLOYMENT.md](../DEPLOYMENT.md).
+
 ## Run locally
 
 Use Node.js 22+ and MongoDB Atlas (recommended for the lab) or a local MongoDB **replica set**. Donation records, coin redemption, moderation and stock transfers use MongoDB transactions. A standalone MongoDB server cannot provide those guarantees, so startup checks for transaction support.
@@ -107,7 +109,7 @@ Send `Authorization: Bearer <token>` on every endpoint except registration, logi
 - `POST /auth/logout` revokes all tokens for the current account. `PUT /auth/password` also revokes all tokens; sign in again afterward.
 - Suspension/verification/disable actions invalidate old organization tokens. Disabling retains donation and moderation records.
 
-Authentication is rate limited to 30 attempts per IP per 15 minutes; the API allows 300 requests per IP per minute. Rate limits and live stream connections are stored in one Node process. If deploying behind a trusted reverse proxy, configure Express's trust proxy setting for that exact deployment.
+Authentication is rate limited to 30 attempts per IP per 15 minutes; the API allows 300 requests per IP per minute. Rate limits and live stream connections are stored in one Node process. `TRUST_PROXY_HOPS` configures how many hosting proxies Express trusts (0 by default for direct local access; 1 in the Render Blueprint). Match it to the hosting topology; never enable unrestricted proxy trust.
 
 The included React adapter keeps the token in sessionStorage and medical/account data in memory. Production hosting should use HTTPS, an explicit CORS allowlist and secret environment values.
 
