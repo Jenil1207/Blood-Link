@@ -67,7 +67,7 @@ export default function LoginPage() {
     setAuthMode('login'); setAccountType(type === 'admin' ? 'admin' : type === 'donor' ? 'donor' : 'hospital-ngo');
     if (type === 'hospital' || type === 'ngo') setOrgRole(type);
     setEmail(type === 'admin' ? 'admin@bloodlink.local' : type + '@bloodlink.local');
-    setPassword(''); setErrorMsg('Enter the password configured in server/.env. Demo accounts require npm run seed; admins require npm run create-admin.');
+    setPassword(''); setErrorMsg('Enter the demo account password provided by the project team.');
   };
 
   return (

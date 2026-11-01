@@ -4,6 +4,24 @@ The root `render.yaml` defines a free Express web service and a React static sit
 The database remains MongoDB, hosted in Atlas. Node.js 24 is selected for both builds.
 Render provides HTTPS, which the browser location feature requires outside localhost.
 
+## Current college demonstration
+
+- Website: https://bloodlink-web-ls34.onrender.com
+- Backend readiness: https://bloodlink-api-ecqv.onrender.com/api/health
+- Render Blueprint: BloodLink (`exs-dbjns4mtlv9c73dps470`)
+- Atlas project / cluster: BloodLink / bloodlink (Free, Singapore)
+
+Both services deploy from `main`. The service URLs differ from their short names;
+the actual URLs above are configured in `CLIENT_ORIGINS` and `VITE_API_URL`.
+Initial online administrator and demo passwords are stored only on the setup Mac
+in `.local/hosting-credentials.txt`, excluded from Git. They differ from the local
+development credentials. The new database contains sample demonstration data.
+
+The deployed checks covered five account logins, sessions, CORS, geospatial camp
+discovery, profile/history/reward reads, direct React routes and a complete sample
+SOS create/notify/volunteer/resolve workflow over live SSE. The sample SOS was
+resolved; the checks did not modify blood inventory or donation counters.
+
 ## 1. Database
 
 Create a separate Atlas Free/M0 cluster and a database user with read/write access

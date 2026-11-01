@@ -2,6 +2,9 @@
 
 A modern MERN stack web application designed to connect voluntary blood donors, non-governmental organizations (NGOs), and healthcare institutions. BloodLink provides real-time emergency SOS coordination, location-based camp discovery, transparent patient donation records, and an endorsement-backed donor reward system.
 
+**Live college demo:** [Open BloodLink](https://bloodlink-web-ls34.onrender.com).
+React and Express are hosted on Render, with MongoDB in Atlas. Demo login details are shared privately by the project team. The free API may take about a minute to wake up after inactivity.
+
 ---
 
 ## Key Features
