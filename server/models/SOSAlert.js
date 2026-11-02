@@ -10,6 +10,8 @@ const schema = new mongoose.Schema({
   status: { type: String, enum: ['Active', 'In Transit', 'Resolved'], default: 'Active' },
   responders: [{ donorId: String, name: String, acceptedAt: { type: Date, default: Date.now } }],
   resolvedBy: { type: String, default: 'NA' }, resolvedDate: Date,
+  // Set when a hospital asks one specific partner hospital for a stock transfer.
+  targetHospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'HospitalNGO', default: null },
   fulfillment: { sourceHospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'HospitalNGO' }, units: Number }
 }, { timestamps: true });
 schema.index({ location: '2dsphere' });

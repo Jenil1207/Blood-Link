@@ -22,6 +22,8 @@ router.get('/nearby', asyncRoute(async (req, res) => {
   const location = searchLocation(req.query, req.auth.account.location);
   if (!location) fail(400, 'Set your profile location or supply lat and lng');
   const query = { status: { $in: ['Active', 'In Transit'] }, expiresAt: { $gt: new Date() }, location: near(location, radius(req.query)) };
+  // Transfer requests aimed at one hospital are visible only to that hospital (and the requester via /mine).
+  query.targetHospitalId = req.auth.type === 'donor' ? null : { $in: [null, req.auth.account._id] };
   if (req.auth.type === 'donor') query.targetBloodType = req.auth.account.bloodType;
   if (req.query.bloodType) query.targetBloodType = parse(v.bloodType, req.query.bloodType);
   const alerts = await SOSAlert.find(query).limit(page(req.query).limit);
@@ -50,6 +52,7 @@ router.get('/stock-matches/:hospitalId', roles('hospital'), asyncRoute(async (re
 router.post('/', roles('hospital'), asyncRoute(async (req, res) => {
   const data = parse(v.sos, req.body);
   const facility = req.auth.account;
+  if (data.targetHospitalId) return requestTransfer(req, res, data);
   const result = await mongoose.connection.transaction(async session => {
     const [alert] = await SOSAlert.create([{
       ...data, hospitalId: facility._id, hospitalName: facility.name, location: facility.location,
@@ -73,6 +76,23 @@ router.post('/', roles('hospital'), asyncRoute(async (req, res) => {
   publish(result.notifications);
   res.status(201).json({ message: 'SOS broadcast created', alert: alertView(result.alert, req.auth, facility.location), notifiedDonors: result.notifications.filter(n => n.recipientType === 'donor').length, notifiedHospitals: result.notifications.filter(n => n.recipientType === 'organization').length });
 }));
+// A direct transfer request: no donor broadcast, only the chosen hospital is notified.
+async function requestTransfer(req, res, data) {
+  const facility = req.auth.account;
+  if (data.targetHospitalId === String(facility._id)) fail(400, 'Choose another hospital for a transfer request');
+  const result = await mongoose.connection.transaction(async session => {
+    const target = await HospitalNGO.findOne({ _id: data.targetHospitalId, role: 'hospital', isVerified: true, isActive: true, isScamReported: false }).session(session);
+    if (!target) fail(404, 'Hospital not found or not active');
+    const [alert] = await SOSAlert.create([{
+      ...data, hospitalId: facility._id, hospitalName: facility.name, location: facility.location,
+      expiresAt: new Date(Date.now() + data.expiresInHours * 3600000)
+    }], { session });
+    const n = await notify(session, 'organization', target._id, 'sos', `${facility.name} requested a transfer of ${data.requiredQuantity} units of ${data.targetBloodType} from your hospital.`, alert._id);
+    return { alert, target, notifications: [n] };
+  });
+  publish(result.notifications);
+  res.status(201).json({ message: `Transfer request sent to ${result.target.name}`, alert: alertView(result.alert, req.auth, facility.location), notifiedDonors: 0, notifiedHospitals: 1 });
+}
 router.put('/:id/accept', roles('donor'), asyncRoute(async (req, res) => {
   const donor = req.auth.account;
   if (!donor.location || !canVolunteer(donor, req.app.locals.config)) fail(409, 'An available donor with a location and valid scheduling window is required');
@@ -80,6 +100,7 @@ router.put('/:id/accept', roles('donor'), asyncRoute(async (req, res) => {
     const alert = await SOSAlert.findById(objectId(req.params.id)).session(session);
     if (!alert) fail(404, 'SOS alert not found');
     if (alert.status === 'Resolved' || alert.expiresAt <= new Date()) fail(409, 'SOS alert is closed or expired');
+    if (alert.targetHospitalId) fail(409, 'This is a hospital transfer request');
     if (alert.targetBloodType !== donor.bloodType) fail(409, 'This alert targets a different blood type');
     if (distanceKm(alert.location, donor.location) > alert.radiusKm) fail(409, 'You are outside the SOS radius');
     if (alert.responders.some(r => r.donorId === donor.donorId)) fail(409, 'You already responded to this SOS');
@@ -116,6 +137,7 @@ router.put('/:id/fulfill', roles('hospital'), asyncRoute(async (req, res) => {
     if (!alert) fail(404, 'SOS alert not found');
     if (alert.status === 'Resolved' || alert.expiresAt <= new Date()) fail(409, 'SOS already closed or expired');
     if (String(alert.hospitalId) === String(req.auth.account._id)) fail(400, 'Use resolve for your own SOS; fulfill transfers stock from another hospital');
+    if (alert.targetHospitalId && String(alert.targetHospitalId) !== String(req.auth.account._id)) fail(403, 'This transfer request was sent to another hospital');
     const field = `inventory.${alert.targetBloodType}`;
     const source = await HospitalNGO.findOneAndUpdate({ _id: req.auth.account._id, role: 'hospital', isVerified: true, isActive: true, isScamReported: false, [field]: { $gte: alert.requiredQuantity } }, { $inc: { [field]: -alert.requiredQuantity } }, { new: true, session });
     if (!source) fail(409, 'Insufficient source hospital stock');

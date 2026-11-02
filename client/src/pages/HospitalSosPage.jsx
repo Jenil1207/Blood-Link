@@ -12,6 +12,8 @@ export default function HospitalSosPage() {
   const [stockMatches, setStockMatches] = useState([]);
   const donationLogs = recentSos.filter(a => a.status === 'Resolved').map(a => ({ id: a.id, date: a.time, facility: a.hospitalName, type: a.type, qty: a.units + ' units', resolvedBy: a.resolvedBy, status: a.status }));
   const [notification, setNotification] = useState('');
+  const [stockType, setStockType] = useState('O+');
+  const [stockAmount, setStockAmount] = useState(1);
   const refresh = useCallback(async () => {
     const [profile, mine, nearby, matches] = await Promise.all([
       api('/hospitals/' + user._id), api('/sos/mine'), api('/sos/nearby'),
@@ -36,10 +38,22 @@ export default function HospitalSosPage() {
       await refresh(); setNotification('SOS published. ' + result.notifiedDonors + ' matching donors notified.');
     } catch (err) { setNotification(err.message); }
   };
-  const handleRequestTransfer = async () => {
+  const handleRequestTransfer = async (hospitalId, name) => {
     try {
-      const result = await api('/sos', { method: 'POST', body: { targetBloodType, requiredQuantity: Number(requiredQuantity), urgencyLevel } });
-      await refresh(); setNotification('SOS ' + result.alert._id + ' created. Partner hospitals can fulfill it from their SOS dashboard.');
+      await api('/sos', { method: 'POST', body: { targetBloodType, requiredQuantity: Number(requiredQuantity), urgencyLevel, targetHospitalId: hospitalId } });
+      await refresh(); setNotification('Transfer request sent to ' + name + '. They will see it in their notifications.');
+    } catch (err) { setNotification(err.message); }
+  };
+  const handleStockChange = async direction => {
+    const current = inventory[stockType] || 0;
+    const amount = Number(stockAmount);
+    if (!Number.isInteger(amount) || amount < 1) return setNotification('Enter a whole number of bags');
+    const next = current + direction * amount;
+    if (next < 0) return setNotification('Only ' + current + ' bags of ' + stockType + ' in stock');
+    try {
+      const org = await api('/hospitals/' + user._id + '/inventory', { method: 'PUT', body: { inventory: { [stockType]: next } } });
+      setInventory(org.inventory);
+      setNotification(stockType + ' stock updated to ' + next + ' bags');
     } catch (err) { setNotification(err.message); }
   };
   const handleFulfillSos = async alertId => {
@@ -133,6 +147,21 @@ export default function HospitalSosPage() {
                 </div>
               );
             })}
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">BLOOD TYPE</label>
+              <select value={stockType} onChange={e => setStockType(e.target.value)} className="form-select">
+                {bloodGroups.map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, width: '110px' }}>
+              <label className="form-label">BAGS</label>
+              <input type="number" min="1" className="form-input" value={stockAmount} onChange={e => setStockAmount(e.target.value)} />
+            </div>
+            <button type="button" className="btn-primary" style={{ padding: '10px 16px', borderRadius: '8px' }} onClick={() => handleStockChange(1)}>Add Stock</button>
+            <button type="button" className="btn-outline" style={{ padding: '10px 16px', borderRadius: '8px' }} onClick={() => handleStockChange(-1)}>Remove Stock</button>
           </div>
         </div>
 
@@ -253,7 +282,7 @@ export default function HospitalSosPage() {
                   </div>
                 </div>
 
-                {m.requested ? (
+                {recentSos.some(a => a.own && a.status !== 'Resolved' && a.targetHospitalId === m.id && a.targetBloodType === targetBloodType) ? (
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#059669', backgroundColor: '#ecfdf5', padding: '5px 12px', borderRadius: '6px' }}>
                     Requested ✓
                   </span>
@@ -296,7 +325,7 @@ export default function HospitalSosPage() {
                     {item.type}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                    {item.time} &bull; {item.units} Units
+                    {item.time} &bull; {item.units} Units{item.targetHospitalId ? (item.own ? ' \u2022 Transfer request' : ' \u2022 Transfer requested from you') : ''}
                   </div>
                 </div>
 

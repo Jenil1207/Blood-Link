@@ -5,6 +5,7 @@ import { Clock, CheckCircle2, LocateFixed, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useCurrentLocation } from '../hooks/useCurrentLocation';
+import LocationFields from '../components/LocationFields';
 import { addLocationToQuery, coordinatesFromPoint } from '../lib/geolocation';
 
 function SearchMapView({ latitude, longitude, zoom }) {
@@ -79,6 +80,11 @@ export default function NearbyCampsPage() {
   const [detectedLocation, setDetectedLocation] = useState(null);
   const { requestLocation, loading: locating, error: locationError, clearError } = useCurrentLocation();
   const savedLocation = coordinatesFromPoint(user.location);
+  const canHost = role === 'hospital' || role === 'ngo';
+  const [showHostForm, setShowHostForm] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [newCamp, setNewCamp] = useState({ title: '', date: '', endDate: '', address: user.address || '', capacity: 100 });
+  const [campLocation, setCampLocation] = useState({ latitude: savedLocation?.latitude ?? '', longitude: savedLocation?.longitude ?? '' });
   const origin = detectedLocation || savedLocation;
   const latitude = origin?.latitude;
   const longitude = origin?.longitude;
@@ -101,7 +107,21 @@ export default function NearbyCampsPage() {
     }).catch(err => { if (!controller.signal.aborted) { setCamps([]); setError(err.message); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [distanceFilter, bloodFilter, latitude, longitude]);
+  }, [distanceFilter, bloodFilter, latitude, longitude, reloadKey]);
+  const handleHostCamp = async e => {
+    e.preventDefault();
+    try {
+      await api('/camps', { method: 'POST', body: {
+        title: newCamp.title, address: newCamp.address, capacity: Number(newCamp.capacity),
+        date: new Date(newCamp.date).toISOString(), endDate: new Date(newCamp.endDate).toISOString(),
+        latitude: Number(campLocation.latitude), longitude: Number(campLocation.longitude)
+      } });
+      setRegistrationSuccessMsg('Camp "' + newCamp.title + '" created');
+      setNewCamp({ title: '', date: '', endDate: '', address: user.address || '', capacity: 100 });
+      setShowHostForm(false); setError(''); setReloadKey(k => k + 1);
+    } catch (err) { setError(err.message); }
+  };
+  const updateCamp = (field, value) => setNewCamp(prev => ({ ...prev, [field]: value }));
   const handleRegisterSlot = async e => {
     e.preventDefault();
     if (!selectedCamp) return;
@@ -215,6 +235,45 @@ export default function NearbyCampsPage() {
           </div>
         </div>
       </div>
+
+      {canHost && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>Host a Donation Camp</h2>
+            <button type="button" className={showHostForm ? 'btn-outline' : 'btn-primary'} style={{ padding: '8px 16px', borderRadius: '8px' }} onClick={() => setShowHostForm(v => !v)}>
+              {showHostForm ? 'Close' : 'Create Camp'}
+            </button>
+          </div>
+          {showHostForm && (
+            <form onSubmit={handleHostCamp} style={{ marginTop: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">CAMP TITLE</label>
+                <input className="form-input" value={newCamp.title} onChange={e => updateCamp('title', e.target.value)} maxLength={160} required />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 140px', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">STARTS</label>
+                  <input className="form-input" type="datetime-local" value={newCamp.date} onChange={e => updateCamp('date', e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">ENDS</label>
+                  <input className="form-input" type="datetime-local" value={newCamp.endDate} onChange={e => updateCamp('endDate', e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">CAPACITY</label>
+                  <input className="form-input" type="number" min="1" max="1000" value={newCamp.capacity} onChange={e => updateCamp('capacity', e.target.value)} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">ADDRESS</label>
+                <input className="form-input" value={newCamp.address} onChange={e => updateCamp('address', e.target.value)} maxLength={500} required />
+              </div>
+              <LocationFields value={campLocation} onChange={setCampLocation} required hint="Defaults to your institution's location. Use your location or edit the coordinates if the camp is elsewhere." />
+              <button type="submit" className="btn-primary" style={{ padding: '10px 20px', borderRadius: '8px', marginTop: '0.75rem' }}>Publish Camp</button>
+            </form>
+          )}
+        </div>
+      )}
 
       {error && <p role="alert">{error}</p>}
       {/* Success Notification */}

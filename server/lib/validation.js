@@ -58,7 +58,8 @@ const sos = z.object({
   urgencyLevel: z.enum(['Critical (24h)', 'Urgent', 'Standard']).default('Critical (24h)'),
   radiusKm: z.number().min(1).max(200).default(50),
   expiresInHours: z.number().int().min(1).max(72).default(24),
-  hospitalId: text().optional(), hospitalName: text().optional(), latitude: latitude.optional(), longitude: longitude.optional()
+  hospitalId: text().optional(), hospitalName: text().optional(), latitude: latitude.optional(), longitude: longitude.optional(),
+  targetHospitalId: z.string().regex(/^[a-f\d]{24}$/i).optional()
 }).strict();
 const reward = z.object({
   title: requiredText(160), provider: requiredText(160), costCoins: z.number().int().min(1).max(100000),
