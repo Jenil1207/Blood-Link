@@ -10,14 +10,15 @@ export async function apiFetch(path, options = {}) {
   const url = /^https?:\/\//.test(relative) ? relative : API_URL + (relative.startsWith('/') ? relative : '/' + relative);
   const headers = new Headers(options.headers);
   const token = getToken();
-  if (token) headers.set('Authorization', 'Bearer ' + token);
+  const isAuthRoute = path.includes('/auth/login') || path.includes('/auth/register');
+  if (token && !isAuthRoute) headers.set('Authorization', 'Bearer ' + token);
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const details = data.details?.map?.(d => d.field + ': ' + d.message).join('; ');
-    const error = new Error(details || data.error || 'Request failed');
+    const error = new Error(details || data.error || (response.status === 401 ? 'Invalid email or password' : 'Request failed'));
     error.status = response.status;
-    if (response.status === 401 && token) {
+    if (response.status === 401 && token && !isAuthRoute) {
       setToken(null);
       window.dispatchEvent(new Event('bloodlink-session-expired'));
     }

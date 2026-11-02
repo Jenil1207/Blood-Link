@@ -263,7 +263,7 @@ export default function LoginPage() {
               : 'Join the BloodLink emergency network to donate or coordinate.'}
           </p>
 
-          {/* Account Type Toggle (Donor vs NGO/Hospital) */}
+          {/* Account Type Toggle (Donor vs NGO/Hospital vs Admin) */}
           <div
             style={{
               backgroundColor: '#f1f5f9',
@@ -276,13 +276,13 @@ export default function LoginPage() {
           >
             <button
               type="button"
-              onClick={() => setAccountType('donor')}
+              onClick={() => { setAccountType('donor'); setErrorMsg(''); }}
               style={{
                 flex: 1,
-                padding: '10px 16px',
+                padding: '10px 14px',
                 borderRadius: '9999px',
                 border: 'none',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 fontWeight: 700,
                 backgroundColor: accountType === 'donor' ? '#ffffff' : 'transparent',
                 color: accountType === 'donor' ? '#0f172a' : '#64748b',
@@ -299,13 +299,13 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => setAccountType('hospital-ngo')}
+              onClick={() => { setAccountType('hospital-ngo'); setErrorMsg(''); }}
               style={{
                 flex: 1,
-                padding: '10px 16px',
+                padding: '10px 14px',
                 borderRadius: '9999px',
                 border: 'none',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 fontWeight: 700,
                 backgroundColor: accountType === 'hospital-ngo' ? '#ffffff' : 'transparent',
                 color: accountType === 'hospital-ngo' ? '#0f172a' : '#64748b',
@@ -320,11 +320,34 @@ export default function LoginPage() {
             >
               <Building2 size={15} /> NGO / Hospital
             </button>
+            {authMode === 'login' && (
+              <button
+                type="button"
+                onClick={() => { setAccountType('admin'); setErrorMsg(''); }}
+                style={{
+                  flex: 1,
+                  padding: '10px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  backgroundColor: accountType === 'admin' ? '#ffffff' : 'transparent',
+                  color: accountType === 'admin' ? '#0f172a' : '#64748b',
+                  boxShadow: accountType === 'admin' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Shield size={15} /> Admin
+              </button>
+            )}
           </div>
 
           {/* Error & Success Alerts */}
-          <button type="button" onClick={() => { setAccountType('admin'); setAuthMode('login'); }} style={{ marginBottom: '1rem' }}>Admin sign in</button>
-          {accountType === 'admin' && <p>Signing in as an administrator.</p>}
           {errorMsg && (
             <div
               style={{
