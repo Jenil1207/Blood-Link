@@ -308,6 +308,23 @@ test('SOS fulfillment atomically transfers stock exactly once', async () => {
   await api('get', '/sos/stock-matches/' + hospital._id + '?bloodType=O%2B&units=1', hospitalToken).expect(200);
   await api('post', '/sos', ngoToken).send({ targetBloodType: 'O+', requiredQuantity: 1 }).expect(403);
 });
+test('transfer request notifies only the chosen hospital and only it can fulfill', async () => {
+  const third = await makeOrg('hospital', { name: 'Third Hospital', inventory: { 'O+': 10 } });
+  const thirdToken = token(third, 'organization');
+  await api('post', '/sos', hospitalToken).send({ targetBloodType: 'O+', requiredQuantity: 1, targetHospitalId: String(hospital._id) }).expect(400);
+  await api('post', '/sos', hospitalToken).send({ targetBloodType: 'O+', requiredQuantity: 1, targetHospitalId: String(ngo._id) }).expect(404);
+  const created = await api('post', '/sos', hospitalToken).send({ targetBloodType: 'O+', requiredQuantity: 2, targetHospitalId: String(partner._id) }).expect(201);
+  const id = created.body.alert._id;
+  assert.equal(created.body.notifiedDonors, 0);
+  const sent = await Notification.find({ resourceId: id, type: 'sos' });
+  assert.deepEqual(sent.map(n => String(n.recipientId)), [String(partner._id)]);
+  const donorView = await api('get', '/sos/nearby', donorToken).expect(200);
+  assert.ok(!donorView.body.some(a => a._id === id));
+  const partnerView = await api('get', '/sos/nearby', partnerToken).expect(200);
+  assert.ok(partnerView.body.some(a => a._id === id));
+  await api('put', '/sos/' + id + '/fulfill', thirdToken).expect(403);
+  await api('put', '/sos/' + id + '/fulfill', partnerToken).expect(200);
+});
 test('notification history and read acknowledgements are owner-only', async () => {
   const listed = await api('get', '/notifications', otherToken).expect(200);
   assert.ok(listed.body.length > 0);

@@ -1,12 +1,13 @@
 import { api } from '../lib/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Gift } from 'lucide-react';
 export default function RewardsStorePage() {
   const { user, setUser } = useAuth();
   const [vouchers, setVouchers] = useState([]);
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [brokenImages, setBrokenImages] = useState([]);
   const requestKeys = useRef(new Map());
   const busy = useRef(false);
   useEffect(() => {
@@ -87,12 +88,17 @@ export default function RewardsStorePage() {
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ height: '170px', width: '100%', overflow: 'hidden', backgroundColor: '#e2e8f0' }}>
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                <div style={{ height: '170px', width: '100%', overflow: 'hidden', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {item.image && !brokenImages.includes(item.id) ? (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      onError={() => setBrokenImages(prev => [...prev, item.id])}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Gift size={56} color="#94a3b8" aria-label={item.title} />
+                  )}
                 </div>
 
                 <div style={{ padding: '1.25rem' }}>

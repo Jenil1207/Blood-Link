@@ -1,5 +1,6 @@
 import { api } from '../lib/api';
 import React, { useState, useEffect } from 'react';
+import RewardManager from '../components/RewardManager';
 import { ShieldCheck, CheckCircle2, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 export default function AdminPage() {
   const [organizations, setOrganizations] = useState([]);
@@ -287,6 +288,8 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      <RewardManager />
     </div>
   );
 }
