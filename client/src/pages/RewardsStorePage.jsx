@@ -1,7 +1,21 @@
 import { api } from '../lib/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Gift } from 'lucide-react';
+import { CheckCircle, Gift, Coffee, ShoppingBag, Utensils, Dumbbell, Music, BookOpen } from 'lucide-react';
+
+// Fallback gradient backgrounds per index for vouchers without images
+const CARD_GRADIENTS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+  'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)',
+];
+
+const CARD_ICONS = [Coffee, ShoppingBag, Utensils, Dumbbell, Gift, Music, BookOpen, Gift];
 export default function RewardsStorePage() {
   const { user, setUser } = useAuth();
   const [vouchers, setVouchers] = useState([]);
@@ -77,8 +91,7 @@ export default function RewardsStorePage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
             {vouchers.map((item) => (
-              <div
-                key={item.id}
+              <div key={item.id}
                 className="card"
                 style={{
                   padding: 0,
@@ -88,7 +101,8 @@ export default function RewardsStorePage() {
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ height: '170px', width: '100%', overflow: 'hidden', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Voucher image / fallback */}
+                <div style={{ height: '160px', width: '100%', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
                   {item.image && !brokenImages.includes(item.id) ? (
                     <img
                       src={item.image}
@@ -97,36 +111,59 @@ export default function RewardsStorePage() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <Gift size={56} color="#94a3b8" aria-label={item.title} />
+                    <div style={{
+                      width: '100%', height: '100%',
+                      background: CARD_GRADIENTS[vouchers.indexOf(item) % CARD_GRADIENTS.length],
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}>
+                      {React.createElement(CARD_ICONS[vouchers.indexOf(item) % CARD_ICONS.length], { size: 40, color: 'rgba(255,255,255,0.9)' })}
+                      <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {item.provider || 'Reward'}
+                      </span>
+                    </div>
                   )}
+                  {/* Cost badge overlay */}
+                  <div style={{
+                    position: 'absolute', top: '10px', right: '10px',
+                    backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+                    color: '#fbbf24', fontWeight: 800, fontSize: '0.8rem',
+                    padding: '4px 10px', borderRadius: '9999px'
+                  }}>
+                    {item.cost} coins
+                  </div>
                 </div>
 
-                <div style={{ padding: '1.25rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px', lineHeight: 1.3 }}>
+                <div style={{ padding: '1.1rem 1.25rem 1.25rem' }}>
+                  <h3 style={{ fontSize: '0.975rem', fontWeight: 700, color: '#0f172a', marginBottom: '3px', lineHeight: 1.3 }}>
                     {item.title}
                   </h3>
-                  <div style={{ fontSize: '0.825rem', color: '#64748b', marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
                     {item.provider}
+                    {item.stock !== undefined && (
+                      <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: item.stock > 0 ? '#16a34a' : '#dc2626' }}>
+                        {item.stock > 0 ? `${item.stock} left` : 'Out of stock'}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 800, color: '#b45309', fontSize: '0.95rem' }}>
-                      {item.cost} {item.cost === 300 ? 'Blood Coins' : 'Coins'}
+                    <div style={{ fontWeight: 800, color: '#b45309', fontSize: '0.9rem' }}>
+                      {item.cost} Blood Coins
                     </div>
 
                     <button
                       onClick={() => handleRedeem(item)}
+                      disabled={item.stock === 0 || userCoins < item.cost}
                       className="btn-primary"
                       style={{
                         padding: '6px 16px',
                         fontSize: '0.85rem',
                         borderRadius: '6px',
-                        backgroundColor: '#1e293b'
+                        backgroundColor: item.stock === 0 || userCoins < item.cost ? '#94a3b8' : '#1e293b',
+                        cursor: item.stock === 0 || userCoins < item.cost ? 'not-allowed' : 'pointer'
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#0f172a')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}
                     >
-                      Redeem
+                      {item.stock === 0 ? 'Sold Out' : userCoins < item.cost ? 'Insufficient' : 'Redeem'}
                     </button>
                   </div>
                 </div>
