@@ -10,6 +10,15 @@ export default function HospitalSosPage() {
   const [urgencyLevel, setUrgencyLevel] = useState('Critical (24h)');
   const [recentSos, setRecentSos] = useState([]);
   const [stockMatches, setStockMatches] = useState([]);
+  // Only last 5, active/in-transit on top, then resolved
+  const sortedRecentSos = [...recentSos]
+    .sort((a, b) => {
+      const activeOrder = s => (s === 'Active' ? 0 : s === 'In Transit' ? 1 : 2);
+      const diff = activeOrder(a.status) - activeOrder(b.status);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt || b.time) - new Date(a.createdAt || a.time);
+    })
+    .slice(0, 5);
   const donationLogs = recentSos.filter(a => a.status === 'Resolved').map(a => ({ id: a.id, date: a.time, facility: a.hospitalName, type: a.type, qty: a.units + ' units', resolvedBy: a.resolvedBy, status: a.status }));
   const [notification, setNotification] = useState('');
   const [stockType, setStockType] = useState('O+');
@@ -57,9 +66,17 @@ export default function HospitalSosPage() {
     } catch (err) { setNotification(err.message); }
   };
   const handleFulfillSos = async alertId => {
-    const own = recentSos.find(a => a.id === alertId)?.own;
-    try { await api('/sos/' + alertId + (own ? '/resolve' : '/fulfill'), { method: 'PUT' }); await refresh(); setNotification(own ? 'SOS resolved' : 'Stock transferred and SOS resolved'); }
-    catch (err) { setNotification(err.message); }
+    const alert = recentSos.find(a => a.id === alertId);
+    if (!alert) return;
+    // A hospital cannot fulfill its own SOS request (it can only resolve it if it created it)
+    if (!alert.own && String(alert.hospitalId) === String(user._id)) {
+      return setNotification('You cannot fulfill your own SOS request.');
+    }
+    try {
+      await api('/sos/' + alertId + (alert.own ? '/resolve' : '/fulfill'), { method: 'PUT' });
+      await refresh();
+      setNotification(alert.own ? 'SOS resolved' : 'Stock transferred and SOS resolved');
+    } catch (err) { setNotification(err.message); }
   };
   const getStockStatus = count => count <= 3 ? { text: 'CRITICAL', color: '#dc2626', bg: '#dc2626' } : count <= 6 ? { text: 'LOW', color: '#ea580c', bg: '#ea580c' } : { text: 'Adequate', color: '#16a34a', bg: '#10b981' };
   const bloodGroups = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
@@ -302,56 +319,78 @@ export default function HospitalSosPage() {
 
         {/* Recent SOS Logs */}
         <div className="card">
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem' }}>
-            Recent SOS Logs
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              Recent SOS Logs
+            </h2>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Last 5</span>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recentSos.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.9rem',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  backgroundColor: '#f8fafc'
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a' }}>
-                    {item.type}
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                    {item.time} &bull; {item.units} Units{item.targetHospitalId ? (item.own ? ' \u2022 Transfer request' : ' \u2022 Transfer requested from you') : ''}
+            {sortedRecentSos.length === 0 && (
+              <p style={{ color: '#94a3b8', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>No recent SOS activity</p>
+            )}
+            {sortedRecentSos.map((item) => {
+              const isLive = item.status === 'Active' || item.status === 'In Transit';
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    padding: '0.9rem',
+                    borderRadius: '10px',
+                    border: isLive ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+                    backgroundColor: isLive ? '#fff5f5' : '#f8fafc'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                          {item.type}
+                        </h3>
+                        {isLive && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            fontSize: '0.7rem', fontWeight: 800, color: '#dc2626',
+                            backgroundColor: '#fee2e2', padding: '2px 7px', borderRadius: '9999px',
+                            textTransform: 'uppercase', letterSpacing: '0.5px'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#dc2626', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
+                            Live
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '3px' }}>
+                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.hospitalName}</span>
+                        {' · '}{item.time}{' · '}{item.units} Units
+                        {item.targetHospitalId ? (item.own ? ' · Transfer request' : ' · Transfer requested from you') : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                      {item.status === 'In Transit' && (
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#d97706', backgroundColor: '#fef3c7', padding: '4px 10px', borderRadius: '9999px' }}>
+                          In Transit
+                        </span>
+                      )}
+                      {item.status === 'Resolved' && (
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '9999px' }}>
+                          Resolved ({item.resolvedBy})
+                        </span>
+                      )}
+                      {isLive && (
+                        <button
+                          onClick={() => handleFulfillSos(item.id)}
+                          className="btn-primary"
+                          style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: '6px' }}
+                        >
+                          {item.own ? 'Resolve Request' : 'Fulfill Request'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  {item.status === 'In Transit' && (
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#d97706', backgroundColor: '#fef3c7', padding: '4px 10px', borderRadius: '9999px' }}>
-                      In Transit
-                    </span>
-                  )}
-                  {item.status === 'Resolved' && (
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '9999px' }}>
-                      Resolved ({item.resolvedBy})
-                    </span>
-                  )}
-                  {(item.status === 'Active' || item.status === 'In Transit') && (
-                    <button
-                      onClick={() => handleFulfillSos(item.id, item.hospitalName)}
-                      className="btn-primary"
-                      style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: '6px' }}
-                    >
-                      {item.own ? 'Resolve Request' : 'Fulfill Request'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

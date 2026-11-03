@@ -71,7 +71,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: '#ffffff' }}>
+    <div style={{ height: '100vh', display: 'flex', backgroundColor: '#ffffff', overflow: 'hidden' }}>
       {/* Left Pane - Promotional Crimson Hero matching PDF */}
       <div
         style={{
@@ -82,7 +82,9 @@ export default function LoginPage() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          position: 'relative',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
           overflow: 'hidden'
         }}
       >
@@ -239,10 +241,12 @@ export default function LoginPage() {
       <div
         style={{
           flex: '1',
+          overflowY: 'auto',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          padding: '3rem 4rem'
+          padding: authMode === 'login' ? '0 4rem' : '3rem 4rem',
+          paddingTop: authMode === 'login' ? '10vh' : '3rem'
         }}
       >
         <div style={{ width: '100%', maxWidth: '440px' }}>

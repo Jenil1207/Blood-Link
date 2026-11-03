@@ -11,8 +11,9 @@ No external image service or API key is required at runtime.
 | `health-check.webp` | Health checks and medical vouchers |
 
 An administrator's configured image URL takes priority. A matching bundled photo
-is used if that URL is empty or fails. Unrecognized rewards retain the gift icon.
-Card layout, pricing, stock and redemption behavior are unchanged.
+is used if that URL is empty or fails. Unrecognized rewards retain the existing
+gradient, category icon and provider label. Card layout, cost badges, stock labels,
+pricing and redemption behavior from the latest rewards-page update are preserved.
 
 ## Generation prompts
 

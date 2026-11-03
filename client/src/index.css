@@ -367,3 +367,9 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
 @media (max-width: 480px) {
   .location-coordinates { grid-template-columns: 1fr; }
 }
+
+/* Pulsing dot for live SOS indicator */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
