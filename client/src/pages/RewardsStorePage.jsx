@@ -2,12 +2,40 @@ import { api } from '../lib/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CheckCircle, Gift } from 'lucide-react';
+import fitnessPhoto from '../assets/rewards/fitness-accessory.webp';
+import moviePhoto from '../assets/rewards/movie-ticket.webp';
+import healthPhoto from '../assets/rewards/health-check.webp';
+
+const rewardPhotos = [
+  { matches: /\b(fitness|gym|yoga|workout|sports?|exercise)\b/i, src: fitnessPhoto, alt: 'Dumbbells, a yoga mat, water bottle and towel in a sunlit workout space' },
+  { matches: /\b(movies?|cinema|theat(?:er|re))\b/i, src: moviePhoto, alt: 'Popcorn and admission tickets on a red cinema seat' },
+  { matches: /\b(health|medical|clinic|checkup|check-up|screening)\b/i, src: healthPhoto, alt: 'A stethoscope and blood pressure cuff on a bright clinic desk' },
+];
+
+function RewardPhoto({ item }) {
+  const [failedSources, setFailedSources] = useState([]);
+  const fallback = rewardPhotos.find(photo => photo.matches.test(`${item.title} ${item.provider}`));
+  const customPhoto = typeof item.image === 'string' ? item.image.trim() : '';
+  // Preserve admin-supplied photos; use a bundled photo when one is absent or fails.
+  const source = [customPhoto, fallback?.src].find(src => src && !failedSources.includes(src));
+  if (!source) return <Gift size={56} color="#94a3b8" aria-label={item.title} />;
+  return (
+    <img
+      src={source}
+      alt={source === fallback?.src ? fallback.alt : item.title}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailedSources(prev => prev.includes(source) ? prev : [...prev, source])}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+    />
+  );
+}
+
 export default function RewardsStorePage() {
   const { user, setUser } = useAuth();
   const [vouchers, setVouchers] = useState([]);
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [brokenImages, setBrokenImages] = useState([]);
   const requestKeys = useRef(new Map());
   const busy = useRef(false);
   useEffect(() => {
@@ -89,16 +117,7 @@ export default function RewardsStorePage() {
                 }}
               >
                 <div style={{ height: '170px', width: '100%', overflow: 'hidden', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {item.image && !brokenImages.includes(item.id) ? (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      onError={() => setBrokenImages(prev => [...prev, item.id])}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <Gift size={56} color="#94a3b8" aria-label={item.title} />
-                  )}
+                  <RewardPhoto item={item} />
                 </div>
 
                 <div style={{ padding: '1.25rem' }}>
